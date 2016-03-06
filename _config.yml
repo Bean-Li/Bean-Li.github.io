@@ -1,0 +1,16 @@
+future: true
+permalink: /:title/
+url: http://manuscola.github.io
+name: Bean Li
+author: Bean Li
+qq: 
+email: beanli.coder@gmail.com
+duoshuo: 
+beian: 
+cnzz: 
+weibo: manuscola
+github: Bean-Li
+pygments: true
+paginate: 20
+truncate: true
+about: "Bean Li"
