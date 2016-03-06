@@ -11,17 +11,17 @@ comments: no
 
 Linux 后端工程师，从事存储行业
 
-> Linux kernel, Ceph
+> Linux平台 C/SHELL/PYTHON，Ceph，了解Linux Kernel
 
 
 ---
 ###经历
 
-* 2010.04 ~ 2012.02	ZTE，分布式文件系统ZXDFS的开发
+* 2010.04 ~ 2012.02		  ZTE，分布式文件系统ZXDFS的开发
  
-* 2012.02 ~ 2015.01	TrendMicro，威胁发现设备（TDA）后台开发
+* 2012.02 ~ 2015.01		  TrendMicro 威胁发现设备（TDA）后台开发
 
-* 2015.01 ~ Now		BigTera，基于Ceph的分布式存储开发
+* 2015.01 ~ Now   			  BigTera 基于Ceph的分布式存储开发
 
 
 ----
@@ -39,5 +39,5 @@ GitHub：[http://github.com/{{ site.github }}](http://github.com/{{ site.github 
 
 @cublogs：[Bean Li](http://bean.blog.chinaunix.net)
 
-----
+weibo:    manuscola
 
