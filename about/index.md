@@ -11,7 +11,7 @@ comments: no
 
 Linux 后端工程师，从事存储行业
 
-> Linux平台 C/SHELL/PYTHON，Ceph，了解Linux Kernel
+> Linux平台 C/SHELL/PYTHON编程，Ceph，Linux Kernel
 
 
 ---
