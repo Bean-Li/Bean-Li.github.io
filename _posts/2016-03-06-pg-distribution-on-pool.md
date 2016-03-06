@@ -60,28 +60,33 @@ https://www.spinics.net/lists/ceph-devel/msg26336.html
 下面以一个实际中的pool为例，查看PG在OSD的分布情况：
 
 ```
-root@host1:~/bean# osdmaptool om --import-crush cm --test-map-pgs --pool 2
+root@node-3:/tmp# osdmaptool om --import-crush cm --test-map-pgs --pool 2
 osdmaptool: osdmap file 'om'
-osdmaptool: imported 669 byte crush map from cm
+osdmaptool: imported 1977 byte crush map from cm
 pool 2 pg_num 1024
 #osd	count	first	primary	c wt	wt
-osd.0	224	138	138	0.00563049	1
-osd.1	304	139	139	0.00563049	1
-osd.2	302	137	137	0.00563049	1
-osd.3	223	121	121	0.00563049	1
-osd.4	315	131	131	0.00563049	1
-osd.5	317	140	140	0.00563049	1
-osd.6	363	218	218	0.00947571	1
- in 7
- avg 292 stddev 47.5455 (0.162827x) (expected 15.8359 0.0542325x))
- min osd.3 223
- max osd.6 363
+osd.0	204	97	97	7.21407	1
+osd.1	208	90	90	7.21407	1
+osd.2	202	110	110	7.21407	1
+osd.3	204	101	101	7.21407	1
+osd.4	202	104	104	7.21407	1
+osd.5	215	106	106	7.21407	1
+osd.6	203	100	100	7.21101	1
+osd.7	189	105	105	7.21101	1
+osd.8	209	105	105	7.21101	1
+osd.9	212	106	106	7.21101	1
+ in 10
+ avg 204 stddev 6.78233 (0.0332467x) (expected 13.5765 0.0665512x))
+ min osd.7 189
+ max osd.5 215
 size 0	0
 size 1	0
 size 2	1024
 size 3	0
-osdmaptool: writing epoch 144 to om
+osdmaptool: writing epoch 169 to om
 ```
 
-不难看出，PG分布相当的不均匀，osd.6上的PG数最多 363个PG，而osd.3上PG数最少，只有223，平均下来，osd.6的负载要是osd.3负载的1.5倍以上，同时当osd.6使用率超过90时，osd.3的使用率还不到60％。后期必然会受到客户的质疑。
+不难看出，PG分布相当的不均匀，osd.5上的PG数最多 215个PG，而osd.7上PG数最少，只有189，平均下来，osd.5的负载要比osd.7的重。这个例子还是比较均匀的，只因我手头并没有不均匀的环境，在家里也不方便连到客户环境。
+
+事实上，不均匀的情况可能十分明显，比如80个OSD的一个环境中，拥有最少PG的OSD，只有19个PG，而拥有最多PG的OSD，拥有40个OSD。我在另一客户的环境中也曾经看到过某些OSD使用率超过90%而某些OSD的使用率不超过50％。
 
