@@ -13,7 +13,7 @@ CRUSH算法让PG均匀地分布在各个OSD上，但这仅仅是概率上的平�
 
 我们以pg_num = 1024的双副本pool为例，对于该pool，一共有2048个PG，这2048个PG分布在OSD上。如果Pool中有10个OSD，那么平均每个OSD应该分到204～205个PG，但是CRUSH算法不是round-robin，无法做到这么平均。
 
-如果OSD.X分到最多的PG，240个，而OSD.Y分到最少的PG 180个，那么，会有更多的数据写入OSD.X,这种现象对带来两个弊端
+如果OSD.X分到最多的PG，240个，而OSD.Y分到最少的PG 180个，那么会有更多的数据写入OSD.X，这种现象对带来两个弊端：
 
 ＊ 业务压力并不平衡，极端情况下，因为OSD.X先到性能瓶颈而影响整个集群的性能
 
@@ -40,16 +40,15 @@ https://www.spinics.net/lists/ceph-devel/msg26336.html
 * 获取OSDMap
 
 ```
-     ceph osd getmap -o om    
-
+	ceph osd getmap -o om    
 ```
 
 * 获取crushmap
 
 ```
-	 osdmaptool om --export-crush cm 
-	 或者
-	 ceph ods getcrushmap -o cm
+	osdmaptool om --export-crush cm 
+	或者 
+	ceph ods getcrushmap -o cm
 ```
 
 * 获取指定pool上PG的分布
@@ -84,5 +83,5 @@ size 3	0
 osdmaptool: writing epoch 144 to om
 ```
 
-不难看出，PG分布相当的不均匀，osd.6上的PG数最多 363个PG，而osd.3上PG数最少，只有223，平均下来，osd.6的负载要是osd.3负载的1.5倍以上，同时当osd.6使用率超过90时，osd.3的使用率还不到60％。后期必然会收到客户的质疑。
+不难看出，PG分布相当的不均匀，osd.6上的PG数最多 363个PG，而osd.3上PG数最少，只有223，平均下来，osd.6的负载要是osd.3负载的1.5倍以上，同时当osd.6使用率超过90时，osd.3的使用率还不到60％。后期必然会受到客户的质疑。
 
