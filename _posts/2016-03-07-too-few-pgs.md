@@ -31,7 +31,6 @@ excerpt: 执行ceph health，输出中有 pool xxx has too few pgs，what does i
 从ceph df的输出不难验证这一点：
 
 ```
-  	root@EBS-006-PUB01-JD-Langfang:~# ceph  df
        GLOBAL:
            SIZE     AVAIL     RAW USED     %RAW USED 
            674T      619T       25688G          3.72 
@@ -42,8 +41,8 @@ excerpt: 执行ceph health，输出中有 pool xxx has too few pgs，what does i
            data                           2         175         0          302T        1287 
            metadata                       3      41687k         0          302T         825 
            .rgw.buckets                   4           0         0          302T           0 
-           .abcd.central.log              5      24509k         0          302T       10008 
-           .abcd.xxx                      6      33561k         0          302T         532 
+           .ezs3.central.log              5      24509k         0          302T       10008 
+           .ezs3.statistic                6      33561k         0          302T         532 
            .rgw.root                      7         854         0          302T           3 
            .rgw.control                   8           0         0          302T           8 
            .rgw                           9        1266         0          302T           6 
@@ -52,19 +51,19 @@ excerpt: 执行ceph health，输出中有 pool xxx has too few pgs，what does i
            .users.email                   12        133         0          302T           7 
            .users                         13        133         0          302T           7 
            .users.swift                   14        257         0          302T          13 
-           volume-flashcache-xxx          15     12883G      1.87          269T     3368949
-           volume-sata-xxx                16     10980M         0        36796G        2782 
-           volume-ssd-xxx                 17     11014M         0          345G        2780 
+           volume-flashcache-xxx     15     12883G      1.87          269T     3368949
+           volume-sata-xxx           16     10980M         0        36796G        2782 
+           volume-ssd-xxx            17     11014M         0          345G        2780 
            .usage                         18          0         0          302T           3 
            .rgw.buckets.index             19          0         0          302T           4 
-   root@EBS-006-PUB01-JD-Langfang:~# 
+ 
 ```
 
 可以看出，几乎所有的数据都位于volume-flashcache-xxx 中，因此会存在这样一条警告。事实上，存在一个控制参数来控制该条警告
 
 ```
-       ceph --admin-daemon /var/run/ceph/ceph-mon.vdxys.asok config show |grep skew
-       "mon_pg_warn_max_object_skew": "10",
+   ceph --admin-daemon /var/run/ceph/ceph-mon.vdxys.asok config show |grep skew
+   "mon_pg_warn_max_object_skew": "10",
 ```
 
 只要某个pool中objects per pg的平均值大于集群的objects per pg，就会有此警告。
@@ -75,26 +74,24 @@ excerpt: 执行ceph health，输出中有 pool xxx has too few pgs，what does i
 相关的代码位于src/mon/PGMonitor.cc
 
 ```
-      int average_objects_per_pg = pg_map.pg_sum.stats.sum.num_objects / pg_map.pg_stat.size();
-      if (average_objects_per_pg > 0 &&
-          pg_map.pg_sum.stats.sum.num_objects >= g_conf->mon_pg_warn_min_objects &&
-          p->second.stats.sum.num_objects >= g_conf->mon_pg_warn_min_pool_objects) {
-				int objects_per_pg = p->second.stats.sum.num_objects / pi->get_pg_num();
-				float ratio = (float)objects_per_pg / (float)average_objects_per_pg;
-				if (g_conf->mon_pg_warn_max_object_skew > 0 &&
-				    ratio > g_conf->mon_pg_warn_max_object_skew) {
-				  ostringstream ss;
-				  ss << "pool " << name << " has many more objects per pg than average (too few pgs?)";
-				  summary.push_back(make_pair(HEALTH_WARN, ss.str()));
-				  if (detail) {
-				    ostringstream ss;
-				    ss << "pool " << name << " objects per pg ("
-				       << objects_per_pg << ") is more than " << ratio << " times cluster average ("
-				       << average_objects_per_pg << ")";
-				    detail->push_back(make_pair(HEALTH_WARN, ss.str()));
-				  }
-				}
-      }
+   2237       int average_objects_per_pg = pg_map.pg_sum.stats.sum.num_objects / pg_map.pg_stat.size();
+   2238       if (average_objects_per_pg > 0 &&
+   2239           pg_map.pg_sum.stats.sum.num_objects >= g_conf->mon_pg_warn_min_objects &&
+   2240           p->second.stats.sum.num_objects >= g_conf->mon_pg_warn_min_pool_objects) {
+   2241         int objects_per_pg = p->second.stats.sum.num_objects / pi->get_pg_num();
+   2242         float ratio = (float)objects_per_pg / (float)average_objects_per_pg;
+   2243         if (g_conf->mon_pg_warn_max_object_skew > 0 &&
+   2244             ratio > g_conf->mon_pg_warn_max_object_skew) {
+   2245           ostringstream ss;
+   2246           ss << "pool " << mon->osdmon()->osdmap.get_pool_name(p->first) << " has too few pgs";
+   2247           summary.push_back(make_pair(HEALTH_WARN, ss.str()));
+   2248           if (detail) {
+   2249             ostringstream ss;
+   2250             ss << "pool " << mon->osdmon()->osdmap.get_pool_name(p->first) << " objects per pg ("
+   2251                << objects_per_pg << ") is more than " << ratio << " times cluster average ("
+   2252                << average_objects_per_pg << ")";                                                                                                        
+   2253             detail->push_back(make_pair(HEALTH_WARN, ss.str()));
+   2254           }  
 
 ```
 
