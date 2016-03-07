@@ -3,6 +3,7 @@ layout: post
 title: Get PG distribution on Specific Pool
 date: 2016-03-06 19:41：30
 categories: ceph
+excerpt: 很多情况下，客户的所有的业务数据位于一个Pool之内，该Pool上PG是否均匀决定了OSD使用是否均匀。
 ---
 
 前言
