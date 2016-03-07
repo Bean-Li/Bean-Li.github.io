@@ -51,9 +51,9 @@ excerpt: 执行ceph health，输出中有 pool xxx has too few pgs，what does i
            .users.email                   12        133         0          302T           7 
            .users                         13        133         0          302T           7 
            .users.swift                   14        257         0          302T          13 
-           volume-flashcache-xxx     15     12883G      1.87          269T     3368949
-           volume-sata-xxx           16     10980M         0        36796G        2782 
-           volume-ssd-xxx            17     11014M         0          345G        2780 
+           volume-flashcache-xxx          15     12883G      1.87          269T     3368949
+           volume-sata-xxx                16     10980M         0        36796G        2782 
+           volume-ssd-xxx                 17     11014M         0          345G        2780 
            .usage                         18          0         0          302T           3 
            .rgw.buckets.index             19          0         0          302T           4 
  
