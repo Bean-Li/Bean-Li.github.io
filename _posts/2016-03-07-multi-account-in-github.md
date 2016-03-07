@@ -2,7 +2,8 @@
 layout: post
 title: 在一个Linux下使用两个github账号
 date: 2016-03-07 13:12:40
-categories: ceph
+categories: git
+tag: git github
 ---
 
 前言
