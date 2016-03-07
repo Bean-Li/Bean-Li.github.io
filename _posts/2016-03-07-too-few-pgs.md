@@ -48,14 +48,14 @@ excerpt: 执行ceph health，输出中有 pool xxx has too few pgs，what does i
     .rgw                           9        1266         0          302T           6 
     .rgw.gc                        10          0         0          302T          32 
     .users.uid                     11       4167         0          302T           8 
-    .users.email                 12        133         0          302T           7 
-    .users                      13        133         0          302T           7 
-    .users.swift                 14        257         0          302T          13 
+    .users.email                   12        133         0          302T           7 
+    .users                         13        133         0          302T           7 
+    .users.swift                   14        257         0          302T          13 
     volume-flashcache-xxxxxxxx     15     12883G      1.87          269T     3368949
-    volume-sata-xxxxxxxx          16     10980M         0        36796G        2782 
-    volume-ssd-xxxxxxxx           17     11014M         0          345G        2780 
-    .usage                      18          0         0          302T           3 
-    .rgw.buckets.index            19          0         0          302T           4 
+    volume-sata-xxxxxxxx           16     10980M         0        36796G        2782 
+    volume-ssd-xxxxxxxx            17     11014M         0          345G        2780 
+    .usage                         18          0         0          302T           3 
+    .rgw.buckets.index             19          0         0          302T           4 
      
 ```
 
