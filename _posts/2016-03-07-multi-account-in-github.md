@@ -4,7 +4,9 @@ title: 在一个Linux下使用两个github账号
 date: 2016-03-07 13:12:40
 categories: git
 tag: git github
+excerpt: 有时候Linux下会有多个github的账号，这种情况下需要做一些设置。
 ---
+
 
 前言
 -----
