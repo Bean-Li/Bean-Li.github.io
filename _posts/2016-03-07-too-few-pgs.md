@@ -15,8 +15,8 @@ excerpt: 执行ceph health，输出中有 pool xxx has too few pgs，what does i
 
 ```
    ceph health detail
-   HEALTH_WARN pool volume-flashcache-xxxxxxxx has too few pgs; noout flag(s) set
-   pool volume-flashcache-xxxxxxxx objects per pg (3290) is more than 10.2174 times cluster average (322)
+   HEALTH_WARN pool volume-flashcache-xxx has too few pgs; noout flag(s) set
+   pool volume-flashcache-xxx objects per pg (3290) is more than 10.2174 times cluster average (322)
    noout flag(s) set
 ```
 
@@ -31,31 +31,32 @@ excerpt: 执行ceph health，输出中有 pool xxx has too few pgs，what does i
 从ceph df的输出不难验证这一点：
 
 ```
-    GLOBAL:
-    SIZE     AVAIL     RAW USED     %RAW USED 
-    674T      619T       25688G          3.72 
-    POOLS:
-    NAME                           ID     USED       %USED     MAX AVAIL     OBJECTS 
-    rbd                            0           8         0          302T           1 
-    .ezs3                          1          78         0          302T           1 
-    data                           2         175         0          302T        1287 
-    metadata                       3      41687k         0          302T         825 
-    .rgw.buckets                   4           0         0          302T           0 
-    .xxxx.central.log              5      24509k         0          302T       10008 
-    .xxxx.statistic                6      33561k         0          302T         532 
-    .rgw.root                      7         854         0          302T           3 
-    .rgw.control                   8           0         0          302T           8 
-    .rgw                           9        1266         0          302T           6 
-    .rgw.gc                        10          0         0          302T          32 
-    .users.uid                     11       4167         0          302T           8 
-    .users.email                   12        133         0          302T           7 
-    .users                         13        133         0          302T           7 
-    .users.swift                   14        257         0          302T          13 
-    volume-flashcache-xxxxxxxx     15     12883G      1.87          269T     3368949
-    volume-sata-xxxxxxxx           16     10980M         0        36796G        2782 
-    volume-ssd-xxxxxxxx            17     11014M         0          345G        2780 
-    .usage                         18          0         0          302T           3 
-    .rgw.buckets.index             19          0         0          302T           4 
+    root@EBS-006-PUB01-JD-Langfang:~# ceph  df
+       GLOBAL:
+           SIZE     AVAIL     RAW USED     %RAW USED 
+           674T      619T       25688G          3.72 
+       POOLS:
+           NAME                           ID     USED       %USED     MAX AVAIL     OBJECTS 
+           rbd                            0           8         0          302T           1 
+           .ezs3                          1          78         0          302T           1 
+           data                           2         175         0          302T        1287 
+           metadata                       3      41687k         0          302T         825 
+           .rgw.buckets                   4           0         0          302T           0 
+           .xxxx.central.log              5      24509k         0          302T       10008 
+           .xxxx.statistic                6      33561k         0          302T         532 
+           .rgw.root                      7         854         0          302T           3 
+           .rgw.control                   8           0         0          302T           8 
+           .rgw                           9        1266         0          302T           6 
+           .rgw.gc                        10          0         0          302T          32 
+           .users.uid                     11       4167         0          302T           8 
+           .users.email                   12        133         0          302T           7 
+           .users                         13        133         0          302T           7 
+           .users.swift                   14        257         0          302T          13 
+           volume-flashcache-xxx          15     12883G      1.87          269T     3368949
+           volume-sata-xxx                16     10980M         0        36796G        2782 
+           volume-ssd-xxx                 17     11014M         0          345G        2780 
+           .usage                         18          0         0          302T           3 
+           .rgw.buckets.index             19          0         0          302T           4 
      
 ```
 
