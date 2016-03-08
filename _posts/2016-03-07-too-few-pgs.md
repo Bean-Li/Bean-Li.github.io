@@ -31,7 +31,7 @@ excerpt: 执行ceph health，输出中有 pool xxx has too few pgs，what does i
 从ceph df的输出不难验证这一点：
 
 ```
-    root@EBS-006-PUB01-JD-Langfang:~# ceph  df
+    root@bean_cluster:~# ceph  df
        GLOBAL:
            SIZE     AVAIL     RAW USED     %RAW USED 
            674T      619T       25688G          3.72 
@@ -67,7 +67,7 @@ excerpt: 执行ceph health，输出中有 pool xxx has too few pgs，what does i
    "mon_pg_warn_max_object_skew": "10",
 ```
 
-只要某个pool中objects per pg的平均值大于集群的objects per pg，就会有此警告。
+只要某个pool中objects per pg的平均值大于集群的objects per pg的10倍，就会有此警告。
 
 代码
 -----
