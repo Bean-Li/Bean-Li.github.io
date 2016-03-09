@@ -16,9 +16,9 @@ excerpt: 对于目录结构很深的文件夹，经常需要获取使用情况�
 
 方法
 -----
-cephfs 提供了一个称为 virtual xattrs 功能获取目录的递归信息。
+cephfs 提供了一个称为 virtual xattrs 功能获取目录的递归统计信息。
 
-首先我们体现一下该功能的强大之处：
+让我们一起体会下该功能的强大：
 
 ```
 root@node-3:/var/share/ezfs/shareroot# ll
@@ -26,8 +26,6 @@ total 0
 drwxrwxrwx 1 root root   1 Mar  9 21:18 ./
 drwxr-xr-x 1 root root   4 Mar  9 16:29 ../
 drwxrwxrwx 1 root root 126 Mar  9 21:58 nas/
-
-
 root@node-3:/var/share/ezfs/shareroot/nas# ls
 1    102  106  11   113  117  120  124  14  18  21  25  29  32  36  4   43  47  50  54  58  61  65  69  72  76  8   83  87  90  94  98
 10   103  107  110  114  118  121  125  15  19  22  26  3   33  37  40  44  48  51  55  59  62  66  7   73  77  80  84  88  91  95  99
