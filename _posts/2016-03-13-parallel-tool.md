@@ -15,9 +15,10 @@ excerpt: 测试分布式存储时，经常需要将任务分解到多台机器�
 
 比如我想测试400路并发写10G的大文件，一共写入2000个文件
 
- ```
- seq 1 2000 |xargs -P 400 -I {} dd if=/dev/zero of=file_{} bs=1M count=10240 oflag=direct
- ```
+```
+seq 1 2000 |xargs -P 400 -I {} dd if=/dev/zero of=file_{} bs=1M count=10240 oflag=direct
+ 
+```
 
 xargs 参数中 -P 选项相当逆天，保持400路并发。
 
@@ -38,8 +39,8 @@ parallel作为主角，是时候登场了
 简单地说，就是删除--tollef
 
 ```
-    cat /etc/parallel/config
-    --tollef
+cat /etc/parallel/config
+--tollef
 ```
 
 3 测试可用性
@@ -64,6 +65,7 @@ manu@NJ-BUILDMAN:~$ ps ax|grep sleep
  2392 ?        S      0:00 sleep 42
  2535 ?        Ss     0:00 bash -c eval `echo $SHELL | grep -E "/(t)?csh" > /dev/null  && echo setenv PARALLEL_SEQ 43\;  setenv PARALLEL_PID 3256  || echo PARALLEL_SEQ=43\;export PARALLEL_SEQ\;  PARALLEL_PID=3256\;export PARALLEL_PID` ; sleep 43
  2539 ?        S      0:00 sleep 43
+ 
 ```
 
 注意节点之间需要设置ssh无需输入密码。
