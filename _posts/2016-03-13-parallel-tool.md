@@ -1,9 +1,9 @@
 ---
 layout: post
 title: use parallel tool to execute command in multiple machine
-date: 2016-03-13 23:06:40
+date: 2016-03-13 00:59:40
 categories: Linux
-tag: CLI
+tag: Linux
 excerpt: 对于一个集群，经常需要将任务分解到多个机器上执行
 ---
 
@@ -67,5 +67,3 @@ manu@NJ-BUILDMAN:~$ ps ax|grep sleep
 ```
 
 注意节点之间需要设置ssh无需输入密码。
-
-ß
