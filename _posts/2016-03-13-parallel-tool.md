@@ -1,10 +1,10 @@
 ---
 layout: post
-title: use parallel tool to execute command in multiple machine
-date: 2016-03-13 00:59:40
-categories: Linux
-tag: Linux
-excerpt: 对于一个集群，经常需要将任务分解到多个机器上执行
+title: user parallel to exec command on multiple machine
+date: 2016-03-13 01:06:40
+categories: linux
+tag: linux
+excerpt: 测试分布式存储时，经常需要将任务分解到多台机器之行。
 ---
 
 前言
