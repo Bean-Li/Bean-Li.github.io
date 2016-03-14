@@ -17,9 +17,9 @@ excerpt: disk cache policy会严重影响到数据的安全，尤其是可能有
 ----
 首先，RAID的write policy分成两种：
 
-write back
+**write back
 
-write through
+**write through
 
 看名字，我们也不难猜出write back会有更好的性能。因为在write back模式下，数据写入Controller Cache，就认为Write IO结束了，而不需要等待写入Hard driver。这种模式很明显存在安全隐患，异常掉电情况下，很容易引起数据丢失。
 
@@ -80,6 +80,7 @@ write through
  /opt/MegaRAID/MegaCli/MegaCli64 -LDSetProp -DisDskCache -Immediate -Lall -aAll
 ```
 输出如下：
+
 ```
                                              
         Set Disk Cache Policy to Disabled on Adapter 0, VD 0 (target id: 0) success
@@ -94,6 +95,7 @@ write through
 ```
 
 此时再次查看输出：
+
 ```
         Virtual Drive: 1 (Target Id: 1)
         Name                :
