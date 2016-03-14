@@ -122,7 +122,9 @@ excerpt: disk cache policy会严重影响到数据的安全，尤其是可能有
 推荐设置
 -------
 1 商用环境，RAID一定要有BBU
+
 2 write policy 采用 write back
+
 3 disk cache policy 一定要为disable
 
 这个推荐设置，和Intel给出的 Configuring  RAID For Optimal Performance 是一致的。
