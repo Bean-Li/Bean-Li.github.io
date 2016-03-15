@@ -72,7 +72,11 @@ excerpt: disk cache policy会严重影响到数据的安全，尤其是可能有
         Is VD Cached: No
 ```
 
-可以看到Disk Cache Policy 是 Disk's Default .默认是enable的。
+可以看到Disk Cache Policy 是 Disk's Default 。这个default值可以分成以下情况：
+
+1 For virtual disks containing SATA disks ， Enabled
+
+2 For virtual disks containing SAS disks ，  Disabled
 
 可以通过如下命令将Disk Cache Policy的值改成 Disable
 
@@ -127,7 +131,7 @@ excerpt: disk cache policy会严重影响到数据的安全，尤其是可能有
 
 3 disk cache policy 一定要为disable
 
-这个推荐设置，和Intel给出的 Configuring  RAID For Optimal Performance 是一致的。
+这个推荐设置，和Intel给出的 [Configuring  RAID For Optimal Performance](http://download.intel.com/support/motherboards/server/sb/configuring_raid_for_optimal_perfromance_11.pdf) 是一致的，除此以外，[RAID Controller and Hard Disk Cache Settings](https://www.thomas-krenn.com/en/wiki/RAID_Controller_and_Hard_Disk_Cache_Settings)也给出了类似的结论。这些都是不错的参考文献。
 
 
 
