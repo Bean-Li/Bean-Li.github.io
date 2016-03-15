@@ -17,9 +17,9 @@ excerpt: disk cache policy会严重影响到数据的安全，尤其是可能有
 ----
 首先，RAID的write policy分成两种：
 
-**write back
+- write back
 
-**write through
+- write through
 
 看名字，我们也不难猜出write back会有更好的性能。因为在write back模式下，数据写入Controller Cache，就认为Write IO结束了，而不需要等待写入Hard driver。这种模式很明显存在安全隐患，异常掉电情况下，很容易引起数据丢失。
 
@@ -27,9 +27,9 @@ excerpt: disk cache policy会严重影响到数据的安全，尤其是可能有
 
 但是write back的不安全也是有办法解决的：
 
-第一个方案是UPS--Uninterruptible Power Supply，这个按下不提。
+- 第一个方案是UPS--Uninterruptible Power Supply，这个按下不提。
 
-第二个方案是BBU--Backup Battery Unit，有了BBU，就可以安心地采用write-back模式了。
+- 第二个方案是BBU--Backup Battery Unit，有了BBU，就可以安心地采用write-back模式了。
 
 对BBU不太了解的，可以阅读[Barriers, Caches, Filesystems](https://monolight.cc/2011/06/barriers-caches-filesystems/)，介绍的非常好。
 
@@ -74,9 +74,9 @@ excerpt: disk cache policy会严重影响到数据的安全，尤其是可能有
 
 可以看到Disk Cache Policy 是 Disk's Default 。这个default值可以分成以下情况：
 
-1 For virtual disks containing SATA disks ， Enabled
+- For virtual disks containing SATA disks ， Enabled
 
-2 For virtual disks containing SAS disks ，  Disabled
+- For virtual disks containing SAS disks  ， Disabled
 
 可以通过如下命令将Disk Cache Policy的值改成 Disable
 
@@ -122,6 +122,8 @@ excerpt: disk cache policy会严重影响到数据的安全，尤其是可能有
 
         Is VD Cached: No
 ```
+
+
 
 推荐设置
 -------
