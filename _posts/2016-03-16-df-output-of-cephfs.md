@@ -1,7 +1,7 @@
 ---
 layout: post
 title: stat -f or df -hi output of cephfs
-date: 2016-03-15 11:51:40
+date: 2016-03-16 22:00:40
 categories: ceph
 tag: cephfs ceph
 excerpt: stat -f or df -hi output of cephfs
@@ -91,7 +91,8 @@ none                      495K     1  495K    1% /run/shm
 	
 ```
 
-从buf->f_files 不难看出，该值是当前集群的object数，更准确的含义，不妨看cephfs
+从buf->f_files 不难看出，该值是当前集群的object数，更准确的含义，不妨看ceph代码，但是很明显，该值并不是cephfs容许的最大inode数。
+而free inode值为－1，表示并没有什么限制。
 
 ```
 root@BASIC:~# rados df
