@@ -1,10 +1,11 @@
 ---
 layout: post
-title: get or set LSI RAID  Informaton by MegaCli 
-date: 2016-03-17 14:26:40
+title: MegaCli command on LSI Raid: BBU,write policy and disk cache policy
+date: 2016-03-16 22:00:40
 categories: linux
-tag: linux, Storage
-excerpt: MegaCli是一个非常有用的工具。
+tag: linux
+excerpt: MegaCli是一个非常有用的工具
+---
 
 引言
 -----
