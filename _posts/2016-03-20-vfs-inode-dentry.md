@@ -22,7 +22,6 @@ struct file
 
 ```
     int fd = open(FILEPATH,O_RDONLY);
-
 ```
 用户不需要知道内核VFS，更不需要知道具体的文件系统实现，就可以自如地读写文件，获取文件信息，修改文件属性等。对于用户来讲，文件描述符这个数字才是用户层的藤。
 
@@ -90,7 +89,7 @@ struct embedded_fd_set {
 
 注意，默认情况下使用的是预分配fdtable和两个位图，如果进程打开的文件超过了64，那么就不得不expand_fdtable分配一个更大的能够容纳更多struct file指针的fdtable,然后将老的fdtab中file指针和两个位图，拷贝到新的fdtable。
 
-![](／assets/VFS/alloc_fdtable.png)
+![](/assets/VFS/alloc_fdtable.png)
 
 
 注意，fdtable里面的fd不过是一个指针，指向一个数组，数组中的每一个元素都是一个struct file类型的指针，到目前为止，终于走到了struct file这个最表层的结构体。
@@ -214,9 +213,11 @@ qstr结构体中有一个字段hash，一次算好，再也不算了。此处是
 
 这一部分代码在fs/dcache.c，就按下不提了。
 
-inode
+inode 与页高速缓存
 ------
-inode 应该算是整个VFS的核心，无数功能围绕着该结构体展开。dentry很明显属于文件系统层面，和进程并无瓜葛，但是它不能成为VFS的核心，原因是它和文件并不是一对一的关系，通过文件链接，同一个文件可以有多个dentry。
+inode 应该算是整个VFS的核心，无数功能围绕着该结构体展开。此处inode指的是VFS层的数据结构。对于不同的文件系统，各自有自己的inode，指的是文件系统层的inode。
+
+dentry很明显属于文件系统层面，和进程并无瓜葛，但是它不能成为VFS的核心，原因是它和文件并不是一对一的关系，通过文件链接，同一个文件可以有多个dentry。
 
 inode，因为和文件是一一对应的关系，因此，它实际上成为了VFS的核心，无数的读写功能都最终围绕它组织。
 
@@ -228,5 +229,18 @@ inode，因为和文件是一一对应的关系，因此，它实际上成为了
 
 我们知道，很多文件是非常大的，比如EXT4就支持16T的文件，如果组织不善，查找太慢，会严重影响性能。基数树，你看下它的样子，就会明白为什么这货适合存放文件的页面。
 
-![](／assets／VFS／radix_tree.png)
+![](/assets/VFS/radix_tree.png)
+
+Linux引入了一个叫address_space的结构体，这个结构体相当重要，重要程度几乎可以task_struct相匹敌,无数的流程都围绕着它展开。inode中有一个i_mmaping成员变量，该成员变量即指向文件对应的address_space,而address_space中一个成员变量叫page_tree,这个指针指向的就是文件对应的基数树的根。
+
+我不多说了，一图胜千言：
+
+![](/assets/VFS/file_to_address_space.png)
+
+很明显，从应用层的文件描述符，到struct file，从struct file 到 dentry，从dentry 到inode，从inode 到 address_space, 只要知道文件的偏移量，你就能从radix_tree中查找对应的页面是否在页高速缓存。
+
+
+很明显，按照我的这个风格，这篇文章根本停不下，因为基于文件的内存映射mmap也一样可以走到页高速缓存，此外，内存是有限的，dentry/inode也好，缓存在页高速缓存的页面也罢，不可能永远留在内存中，如何置换，这又将是一片腥风血雨。
+
+不扯了，睡觉去了。
 
