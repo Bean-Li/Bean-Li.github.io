@@ -1,7 +1,7 @@
 ---
 layout: post
 title: VFS中的file，dentry和inode
-date: 2016-03-17 14:38:40
+date: 2016-03-20 14:38:40
 categories: kernel
 tag: kernel
 excerpt: VFS中有三个比较核心的数据结构
