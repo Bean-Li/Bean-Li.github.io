@@ -163,7 +163,7 @@ linear directory or hash tree
 
 注意当你一个目录有几千几万个文件时，hash tree是有优势的，但是如果我只有100个文件，采用hash tree反倒有点浪费性能，因为线性目录只需要读取该block，所有的信息都在其中，但是hash tree 不得不多读取一个block，如图所示。
 
-![](/assert/EXT4/htree_directory.jpg)
+![](/assets/EXT4/htree_directory.jpg)
 
 (上图来自EXT4方面专家阿里的DongHao，他是以EXT3为例，我太懒了，就不亲自绘EXT4的图了，都是一样的)
 
