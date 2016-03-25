@@ -1,8 +1,0 @@
----
-layout: post
-title: EXT4 的dir_index特性
-date: 2016-03-23 22:38:40
-categories: ceph
-tag: ceph
-excerpt: OSD总会写满
----
