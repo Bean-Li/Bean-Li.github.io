@@ -3,7 +3,7 @@ layout: post
 title: EXT4 的 dir_index 特性
 date: 2016-03-25 14:26:40
 categories: linux
-tag: EXT4, linux,ceph
+tag: EXT4, linux ceph
 excerpt: EXT4的dir_index feature，是为了加快目录查找
 ---
 
@@ -77,9 +77,9 @@ inode3  file3
 
 
 
-注意，并不说打开了dir_index功能，所有的目录都一律使用hash tree的方式存储。当目录下的条目并不多的时候，并不采用hash tree，而是采用线性目录。
+注意，并不说打开了dir_index功能，所有的目录都一律使用hash tree的方式存储。当目录下的条目并不多的时候，并不采用hash tree，还是采用线性目录。
 
-问题来了，如何判断一个目录是否采用了hash tree呢？
+那问题就来了，如何判断一个目录是否已采用了hash tree呢？
 
 
     root@node2:/data/osd.3/bean_test/7/8/9# debugfs /dev/sdc2
@@ -163,7 +163,9 @@ linear directory or hash tree
 
 注意当你一个目录有几千几万个文件时，hash tree是有优势的，但是如果我只有100个文件，采用hash tree反倒有点浪费性能，因为线性目录只需要读取该block，所有的信息都在其中，但是hash tree 不得不多读取一个block，如图所示。
 
-![](/assert/EXT4/htree_directory.png)
+![](/assert/EXT4/htree_directory.jpg)
+
+(上图来自EXT4方面专家阿里的DongHao，他是以EXT3为例，我太懒了，就不亲自绘EXT4的图了，都是一样的)
 
 ceph的情况比较有意思，文件名基本是比较规整的，命名有一套规范，有的文件名有38个字节，当然有个文件名有58个字节。如果尝试让所有的文件都位于一个4K的block之中，只能用比较恶劣的情况来决定存放文件的数目，我采用58个字节。
 
