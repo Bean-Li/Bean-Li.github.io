@@ -1,10 +1,11 @@
- ---
+---
 layout: post
-title: EXT4的dir\_index特性
-date: 2016-03-17 14:26:40
+title: EXT4 的 dir_index 特性
+date: 2016-03-25 14:26:40
 categories: linux
 tag: EXT4, linux,ceph
-excerpt: EXT4的dir\_index feature，是为了加快目录查找
+excerpt: EXT4的dir_index feature，是为了加快目录查找
+---
 
 引言
 -----
