@@ -14,3 +14,5 @@ pygments: true
 paginate: 20
 truncate: true
 about: "Bean Li"
+markdown: kramdown
+highlighter: pygments
