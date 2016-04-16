@@ -1,10 +1,10 @@
 ---
 layout: post
-title: EXT4的metadata存放位置的演化
+title: EXT4文件系统的磁盘整体布局
 date: 2016-04-16 22:00:40
 categories: linux	
 tag: linux
-excerpt: 本文主要介绍EXT4 disk layout
+excerpt: 本文主要介绍EXT4 整体的disk layout，视角粗旷
 ---
 前言
 ----
