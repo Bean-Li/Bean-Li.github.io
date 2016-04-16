@@ -15,7 +15,7 @@ EXT4 disk layout
 --------------
 EXT4 是由多个块组（block group）组成的，每个块组的layout如下图所示：
 
-![](/assets/EXT4/ext4-disk-layout.png)
+![](/assets/EXT4/ext4-disk-layout.jpg)
 
 EXT4上承EXT3和EXT2，将大量的存储空间分成块组（Block Group），从上图看出，一个块组用1个block来存放inode的位图和block的位图，这就决定了块组的最大大小。以默认的4K为例，4KB＝32K bit，因此，最多也就能记录32K个块的分配情况。因此一个块组是32K＊4KB＝128MB。
 
