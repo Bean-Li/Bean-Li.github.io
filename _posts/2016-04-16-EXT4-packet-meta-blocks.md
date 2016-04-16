@@ -51,16 +51,18 @@ root@node-3:/data/osd.4# cat /etc/mke2fs.conf
 
 该选项的含义是，将superblock 稀疏地分散在文件系统中：既不是每个块组都有superblock，也不是一共只有一个superblock。那么哪些块组会有superblock呢？如果在用了sparse_super选项（默认选项），超级快位于满足一下条件的块组上
 
-1 块组0
-2 块组id为3 或5 或7的幂。
+* 块组0
+* 块组id为3 或5 或7的幂(注意，块组＃1是3的0次幂，因此也有backup superblock)。
 
 从下面输出中不难看出，
 
 ```
-32768  =  （32876）＊3^0
-98304  =   (32768) *3^1
-163840 =   (32768) *5^1
-294912 =   (32768)* *3^2
+＃1  32768  =  （32876）＊3^0
+＃3  98304  =   (32768) *3^1
+＃5  163840 =   (32768) *5^1
+＃7  229376 =   (32768) *7^1
+＃9  294912 =   (32768) *3^2
+#25  
 ...
 
 ```
@@ -95,7 +97,7 @@ Filesystem features:      has_journal ext_attr resize_inode dir_index filetype n
   Backup superblock at 1934917632, Group descriptors at 1934917633-1934918096
 ```
 
-除了sparse_super选项，EXT4支持一种新的选项 sparse_super2来备份super block，我们不妨看下e2fsprogs该commit的comment：
+除了sparse_super选项，EXT4支持一种新的选项 sparse\_super2来备份super block，我们不妨看下e2fsprogs该commit的comment：
 
 ```
 commit 65c6c3e06f72e76ddb69222b3be1713d870eb782
