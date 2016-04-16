@@ -1,6 +1,6 @@
 ---
 layout: post
-title: 从packet_meta_blockeds选项看EXT4的metadata存放位置的演化
+title: EXT4的metadata存放位置的演化
 date: 2016-04-16 22:00:40
 categories: linux	
 tag: linux
