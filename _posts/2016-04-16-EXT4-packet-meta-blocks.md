@@ -13,13 +13,13 @@ excerpt: 本文主要介绍EXT4 disk layout
 
 EXT4 disk layout
 --------------
-传统的EXT4 传统的layout 如图所示：
+EXT4 是由多个块组（block group）组成的，每个块组的layout如下图所示：
 
 ![](/assets/EXT4/ext4-disk-layout.png)
 
 EXT4上承EXT3和EXT2，将大量的存储空间分成块组（Block Group），从上图看出，一个块组用1个block来存放inode的位图和block的位图，这就决定了块组的最大大小。以默认的4K为例，4KB＝32K bit，因此，最多也就能记录32K个块的分配情况。因此一个块组是32K＊4KB＝128MB。
 
-一般而言，一个block的size总是4KB，很少需要调整，但是如果缺失需要调整block的大小，那么可以通过mkfs的 -b选项来指定block的大小。但是需要注意到，一旦block－-ize发生了变化，那么块组的大小也就发生了变化。这个影响是两方面的，不仅仅是块大小变化了，而且因为一个块的bit发生了变化，由于位图，直接影响了块组容纳的块的个数。后面我们都以4096字节作为block-size
+一般而言，一个block的size总是4KB，很少需要调整，但是如果缺失需要调整block的大小，那么可以通过mkfs的 -b选项来指定block的大小。但是需要注意到，一旦block-ize发生了变化，那么块组的大小也就发生了变化。这个影响是两方面的，不仅仅是块大小变化了，而且因为一个块的bit发生了变化，由于位图，直接影响了块组容纳的块的个数。后面我们都以4096字节作为block-size
 
 对于EXT4文件系统而言，上图中的超级快并非每一个块组都要存在，但也不是只有一个super block块。如果只有一个superblock 块组，那么一旦损坏，文件系统也就不能用了，如果每个块组都要分配一个block，空间上有点浪费。因此mkfs的时候，有一个默认的选项sparse_super。
 
@@ -49,7 +49,7 @@ root@node-3:/data/osd.4# cat /etc/mke2fs.conf
 	}
 ```
 
-该选项的含义是，将superblock 稀疏地分散在文件系统中：既不是每个块组都有superblock，也不是一共只有一个superblock。那么哪些块组会有superblock呢？
+该选项的含义是，将superblock 稀疏地分散在文件系统中：既不是每个块组都有superblock，也不是一共只有一个superblock。那么哪些块组会有superblock呢？如果在用了sparse_super选项（默认选项），超级快位于满足一下条件的块组上
 
 1 块组0
 2 块组id为3 或5 或7的幂。
