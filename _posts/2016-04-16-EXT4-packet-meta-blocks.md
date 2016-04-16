@@ -15,7 +15,7 @@ EXT4 disk layout
 --------------
 传统的EXT4 传统的layout 如图所示：
 
-![](~/GIT/BLOG/Bean-Li.github.io/assets/EXT4/ext4-disk-layout.png)
+![](/assets/EXT4/ext4-disk-layout.png)
 
 EXT4上承EXT3和EXT2，将大量的存储空间分成块组（Block Group），从上图看出，一个块组用1个block来存放inode的位图和block的位图，这就决定了块组的最大大小。以默认的4K为例，4KB＝32K bit，因此，最多也就能记录32K个块的分配情况。因此一个块组是32K＊4KB＝128MB。
 
