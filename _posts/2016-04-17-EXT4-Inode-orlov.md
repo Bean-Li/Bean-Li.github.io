@@ -320,13 +320,23 @@ chattr  +T /home
 各个逻辑块组尽可能平衡的目标明显放松了，
 
 ```
-   max_dirs = ndirs / ngroups + inodes_per_group / 16;
-	min_inodes = avefreei - inodes_per_group*flex_size / 4;
+    max_dirs = ndirs / ngroups + inodes_per_group / 16;
+    min_inodes = avefreei - inodes_per_group*flex_size / 4;
 ```
 
 即只要不是太不平衡，就一律选择父目录所在的逻辑块,更确切的说法是，父目录上次分配inode所在的逻辑块组，即记录在 EXT4_I(parent)\->i\_last\_alloc\_group;中的值。 
 
 本次选择的group会记录在父目录inode的i\_last\_alloc\_group中，当在同一个父目录下创建目录是，i\_last\_alloc\_group就是搜索的起点，因为尽可能均衡的条件放送了，只要不太过分，再次创建的目录很可能和上一次创建的目录在同一个逻辑块组中。
+
+```
+	if (S_ISDIR(mode))
+		ret2 = find_group_orlov(sb, dir, &group, mode, qstr);
+	else
+		ret2 = find_group_other(sb, dir, &group, mode);
+
+got_group:
+	EXT4_I(dir)->i_last_alloc_group = group;
+```
 
 找到逻辑块组之后，同样是采用first-fit的策略进行选择块组。
 
