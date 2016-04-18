@@ -1,7 +1,7 @@
 ---
 layout: post
-title: EXT4 目录文件 inode 分配策	
-date: 2016-04-17 15:10:40
+title: EXT4 目录文件 inode 分配策略
+date: 2016-04-18 23:40:40
 categories: linux	
 tag: linux
 excerpt: 本文主要介绍EXT4 目录文件的inode分配策略
