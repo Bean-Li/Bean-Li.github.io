@@ -384,3 +384,143 @@ fallback_retry:
 
 ```
 
+其它文件的inode分配
+----------------
+在文件系统中，目录文件有点特殊，它是文件系统的骨架，或者是一颗树的枝干，而普通文件是一颗树的树叶。因此目录文件分配inode，单拎出来，由专门的函数处理。其它文件inode分配由find\_group_other函数实现.
+
+在这个函数中，我们主要讲enable flex\_bg feature时采用的策略。原因是随着硬盘空间越来越大，flex_bg几乎总是enable的。
+
+```
+static int find_group_other(struct super_block *sb, struct inode *parent,
+			    ext4_group_t *group, umode_t mode)
+{
+	ext4_group_t parent_group = EXT4_I(parent)->i_block_group;
+	ext4_group_t i, last, ngroups = ext4_get_groups_count(sb);
+	struct ext4_group_desc *desc;
+	int flex_size = ext4_flex_bg_size(EXT4_SB(sb));
+
+	/*
+	 * Try to place the inode is the same flex group as its
+	 * parent.  If we can't find space, use the Orlov algorithm to
+	 * find another flex group, and store that information in the
+	 * parent directory's inode information so that use that flex
+	 * group for future allocations.
+	 */
+	if (flex_size > 1) {
+		int retry = 0;
+
+	try_again:
+		parent_group &= ~(flex_size-1);
+		last = parent_group + flex_size;
+		if (last > ngroups)
+			last = ngroups;
+		for  (i = parent_group; i < last; i++) {
+			desc = ext4_get_group_desc(sb, i, NULL);
+			if (desc && ext4_free_inodes_count(sb, desc)) {
+				*group = i;
+				return 0;
+			}
+		}
+		if (!retry && EXT4_I(parent)->i_last_alloc_group != ~0) {
+			retry = 1;
+			parent_group = EXT4_I(parent)->i_last_alloc_group;
+			goto try_again;
+		}
+		/*
+		 * If this didn't work, use the Orlov search algorithm
+		 * to find a new flex group; we pass in the mode to
+		 * avoid the topdir algorithms.
+		 */
+		*group = parent_group + flex_size;
+		if (*group > ngroups)
+			*group = 0;
+		return find_group_orlov(sb, parent, group, mode, NULL);
+	}
+
+	/*
+	 * Try to place the inode in its parent directory
+	 */
+	*group = parent_group;
+	desc = ext4_get_group_desc(sb, *group, NULL);
+	if (desc && ext4_free_inodes_count(sb, desc) &&
+	    ext4_free_group_clusters(sb, desc))
+		return 0;
+
+	/*
+	 * We're going to place this inode in a different blockgroup from its
+	 * parent.  We want to cause files in a common directory to all land in
+	 * the same blockgroup.  But we want files which are in a different
+	 * directory which shares a blockgroup with our parent to land in a
+	 * different blockgroup.
+	 *
+	 * So add our directory's i_ino into the starting point for the hash.
+	 */
+	*group = (*group + parent->i_ino) % ngroups;
+
+	/*
+	 * Use a quadratic hash to find a group with a free inode and some free
+	 * blocks.
+	 */
+	for (i = 1; i < ngroups; i <<= 1) {
+		*group += i;
+		if (*group >= ngroups)
+			*group -= ngroups;
+		desc = ext4_get_group_desc(sb, *group, NULL);
+		if (desc && ext4_free_inodes_count(sb, desc) &&
+		    ext4_free_group_clusters(sb, desc))
+			return 0;
+	}
+
+	/*
+	 * That failed: try linear search for a free inode, even if that group
+	 * has no free blocks.
+	 */
+	*group = parent_group;
+	for (i = 0; i < ngroups; i++) {
+		if (++*group >= ngroups)
+			*group = 0;
+		desc = ext4_get_group_desc(sb, *group, NULL);
+		if (desc && ext4_free_inodes_count(sb, desc))
+			return 0;
+	}
+
+	return -1;
+}
+
+```
+
+主旋律是很明确的，就是靠近。注释信息说的很清楚了，即首先在父目录的逻辑块组(flex block groups)中寻找有没有可用的inode：
+
+```
+	   parent_group &= ~(flex_size-1);
+		last = parent_group + flex_size;
+		if (last > ngroups)
+			last = ngroups;
+		for  (i = parent_group; i < last; i++) {
+			desc = ext4_get_group_desc(sb, i, NULL);
+			if (desc && ext4_free_inodes_count(sb, desc)) {
+				*group = i;
+				return 0;
+			}
+		}
+
+```
+
+如果没有找到，去父目录上次分配inode的逻辑块组（flex block groups），在此寻找有没有可以用的inode。
+
+```
+		if (!retry && EXT4_I(parent)->i_last_alloc_group != ~0) {
+			retry = 1;
+			parent_group = EXT4_I(parent)->i_last_alloc_group;
+			goto try_again;
+		}
+```
+
+如果还没有，那就只能用 find_group_orlov函数来搜索。注意搜索的时候，会将mode 传入，因为S_ISDIR(mode)总是false，因此，为文件搜索inode的时候，并不会采用展开的策略，还是采用尽可能靠近的策略。
+
+```
+		*group = parent_group + flex_size;
+		if (*group > ngroups)
+			*group = 0;
+		return find_group_orlov(sb, parent, group, mode, NULL);
+```
