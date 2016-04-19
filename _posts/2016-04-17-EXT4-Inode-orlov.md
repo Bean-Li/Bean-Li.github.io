@@ -1,6 +1,6 @@
 ---
 layout: post
-title: EXT4 目录文件 inode 分配策略
+title: EXT4 inode 分配策略
 date: 2016-04-18 23:40:40
 categories: linux	
 tag: linux
@@ -39,8 +39,11 @@ EXT4文件系统的inode是非常多的，按照Inodes Per Block Group ＝ 4096�
 	else
 		ret2 = find_group_other(sb, dir, &group, mode);
 ```
-从上面代码也不难看出，对于目录和文件，选择group的规则是不同的。对于目录而言，使用find_group_orlov函数来寻找合适的group，该函数使用了前面提到的orlov allocator算法，而对于文件，软链接等则 使用了find_group_other来寻找合适的group。我们的重点是find_group_orlov。
+从上面代码也不难看出，对于目录和文件，选择group的规则是不同的。对于目录而言，使用find_group_orlov函数来寻找合适的group，该函数使用了前面提到的orlov allocator算法，而对于文件，软链接等则 使用了find_group_other来寻找合适的group。
 
+目录的inode分配
+--------------
+首先介绍目录文件的inode分配，目录inode分配，调用的是find\_group_orlov函数。
 
 ```
 static int find_group_orlov(struct super_block *sb, struct inode *parent,
@@ -195,7 +198,16 @@ fallback_retry:
 
 ```
 
-首先如果文件系统使用了flex_bg就以战斗小组为单位分配，率先需要确定inode所在的战斗小组，即ngroup的值为文件系统中包含的所有逻辑块组的个数。
+这么一大段代码，概括来讲可以描述为以下情况
+
+1. 采用spread out 策略让目录散开
+2. 根据局部性原理，让兄弟目录，父子目录尽可能的靠近
+
+当然这两种搜索都可能失败，那么就忘记战斗小组，各个块组地毯式搜索。
+
+
+
+OK，我们开始进入代码细节。首先如果文件系统使用了flex_bg就以战斗小组为单位分配，率先需要确定inode所在的战斗小组，即ngroup的值为文件系统中包含的所有逻辑块组的个数，当然了，如果并没有采用flex_bg，就退化成普通的块组。
 
 接下来，对文件系统的总体使用情况做一个评估，我们如果是伸展开的策略，那么我们希望我们的inode分布在一个试用情况低于平均水平的逻辑块组。这样各个逻辑块组使用才能均衡。
 
