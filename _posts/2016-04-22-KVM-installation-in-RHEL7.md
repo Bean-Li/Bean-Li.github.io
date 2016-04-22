@@ -122,7 +122,7 @@ rpm --import http://mirror.centos.org/centos/RPM-GPG-KEY-CentOS-7
 yum install -y atop screen 
 ```
 
-##安装KVM相关的Packages
+## 安装KVM相关的Packages
 
 安装包之前，不妨检查是否打开VT-D，CPU不支持，安装后面的包也只能徒劳无功，方法如下：
 
@@ -159,7 +159,7 @@ systemctl enable libvirtd
 ----------------------------------------------------
 ```
 
-##设置网络
+## 设置网络
 
 默认情况下，创建出来的虚拟机只能访问同一个Server上的其它虚拟机，如果向让VM跳出这个限制，访问自己的LAN，必须设置Network Bridge。
 
@@ -222,7 +222,7 @@ net.ipv4.ip_forward = 1
 ```
 
 
-##创建KVM虚拟机
+## 创建KVM虚拟机
 首先是准备存放ISO的路径和存放虚拟机的路径,因为/home/目录最大，有2T的空间，因此不妨将虚拟机存放在该路径。事实上可以存放你希望存放的位置，只要空间足够即可。
 
 ```
@@ -263,7 +263,7 @@ virt-install --network bridge:kvmbr0  --name VirtualStor_Scaler_6.1 --ram=32768 
 ![image](/assets/RHEL_KVM/kvm-install-2.png)
 
 
-##PCI直通（pass through）准备工作
+## PCI直通（pass through）准备工作
 
 事实上，安装VirtualStor Scaler需要花费很长的时间，我们可以利用这段时间来做PCI设备的直通，当虚拟机安装好了之后，重启RHEL物理机来设置PCI直通。
 
