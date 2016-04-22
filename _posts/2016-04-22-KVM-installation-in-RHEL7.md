@@ -1,10 +1,10 @@
 ---
 layout: post
 title: RHEL7 安装KVM 及 PCI直通
-date: 2016-03-30 23:20:40
+date: 2016-04-22 22:20:40
 categories: linux
 tag: linux KVM
-excerpt: 命令行访问amazon s3 object
+excerpt: KVM installation in RHEL7 and PCI passthrough
 ---
 
 # RHEL7安装KVM及PCI直通
