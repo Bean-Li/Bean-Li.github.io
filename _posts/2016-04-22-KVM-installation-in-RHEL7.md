@@ -7,7 +7,6 @@ tag: linux KVM
 excerpt: KVM installation in RHEL7 and PCI passthrough
 ---
 
-# RHEL7安装KVM及PCI直通
 
 ## REHEL7的安装
 因为安装RHEL7是为了安装KVM，并且讲我们的存储安装在虚拟机中，其中为了提升存储的性能，需要讲RAID卡直通给KVM虚拟机。
