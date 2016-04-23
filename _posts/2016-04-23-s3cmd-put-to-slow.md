@@ -17,6 +17,7 @@ excerpt: s3cmd来测试RADOSGW的性能，其中参数send_chunk默认值4096不
 我想到了s3cmd这个工具，只要有足够的并发数，不难测试集群的汇聚带宽。
 
 在3个客户端分别连3个存储节点，在客户端上分别执行如下命令：
+
 ```
 seq 0 9999       | xargs -I{} -P 40 s3cmd put bean s3://bucket/{}
 seq 10000 19999  | xargs -I{} -P 40 s3cmd put bean s3://bucket/{}
