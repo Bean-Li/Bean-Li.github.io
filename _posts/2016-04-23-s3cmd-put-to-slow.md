@@ -17,10 +17,12 @@ excerpt: s3cmd来测试RADOSGW的性能，其中参数send_chunk默认值4096不
 我想到了s3cmd这个工具，只要有足够的并发数，不难测试集群的汇聚带宽。
 
 在3个客户端分别连3个存储节点，在客户端上分别执行如下命令：
-
+```
 seq 0 9999       | xargs -I{} -P 40 s3cmd put bean s3://bucket/{}
 seq 10000 19999  | xargs -I{} -P 40 s3cmd put bean s3://bucket/{}
 seq 20000 29999  | xargs -I{} -P 40 s3cmd put bean s3://bucket/{}
+```
+
 
 发现速度很慢：
 
@@ -51,4 +53,4 @@ s3cmd 提供了send_chunk和recv_chunk这两个选项，默认都是4096字节�
 
 ## 其它
 
-另外一个值得关注的问题是每个磁盘150MB以下的速度也值得怀疑，从iostat的avgrq-sz看出，基本都在300（sector）以下，即低于150K。这个问题就不再此处讨论了。
+另外一个值得关注的问题是每个磁盘150MB以下的速度也值得怀疑，从iostat的avgrq-sz看出，基本都在300（sector）以下，即低于150K。这个问题就不在此处讨论了。
