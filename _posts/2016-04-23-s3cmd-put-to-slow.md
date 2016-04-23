@@ -1,16 +1,16 @@
 ---
 layout: post
-title: s3cmd 测试RADOSGW的性能
+title: s3cmd 快速评估RADOSGW的性能
 date: 2016-03-30 23:20:40
 categories: ceph
 tag: ceph
-excerpt: 命令行访问amazon s3 object
+excerpt: s3cmd来测试RADOSGW的性能，其中参数send_chunk默认值4096不适合用来测试性能
 ---
 
 
 ## 前言
 
-前面介绍了如何使用s3cmd 测试RADOSGW，基本局限在功能测试。近日，有人报CEPH集群 纠删码Pool的S3功能太弱，3节点集群，9个OSD，性能只能达到100MBps左右。
+前面介绍了如何使用s3cmd 测试RADOSGW，基本局限在功能测试。近日，有人报CEPH集群 纠删码Pool的S3功能太弱，3节点集群，9个OSD，性能只能达到100MBps左右，因为上传的file大小都在50～100M之间，所以这个值有点低。
 
 客户并没有好的测试手段，用6个Windows客户端，使用CloudBerry拖拽的方式上传object，那集群S3的性能到底如何呢？摆在面前的问题是如何快速的测试RADOSGW的上传性能 100MBps是否合理呢。
 
