@@ -1,7 +1,7 @@
 ---
 layout: post
 title: s3cmd 快速评估RADOSGW的性能
-date: 2016-03-30 23:20:40
+date: 2016-04-23 16:20:40
 categories: ceph
 tag: ceph
 excerpt: s3cmd来测试RADOSGW的性能，其中参数send_chunk默认值4096不适合用来测试性能
