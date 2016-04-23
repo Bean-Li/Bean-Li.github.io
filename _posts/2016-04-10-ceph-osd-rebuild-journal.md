@@ -14,23 +14,23 @@ excerpt: 本文介绍如何替换ceph的journal
 1.  用户最初使用SATA盘的一个分区作为ceph OSD的journal，使用过程中发现速度不够快，想增加一块SSD，使用SSD的一个分区作为Journal
 2.  用户的最初的journal 就是SSD的一个分区，但是SSD 有寿命，SSD坏掉了。
 
-无论哪种情况，都要抛弃最初的Journal，重建一个信息的journal分区给CEPH OSD使用
+无论哪种情况，都要抛弃最初的Journal，重建一个新的journal分区给CEPH OSD使用。
 
 方法
 ----
-第一步，重建OSD的journal，总是要将对应的OSD停掉，为了防止OSD down的时间过久，引发recovery，应该设置noout标志位
+第一步，设置集群noout标志位。重建OSD的journal，总是要将对应的OSD停掉，为了防止OSD down的时间过久，引发recovery，应该设置noout标志位
 
 ```
     ceph osd set noout
 ```
 
-第二部是停掉对应的osd.x
+第二步是停掉对应的osd.x。
 
 ```
 /etc/init.d/ceph stop osd.x
 ```
 
-停掉OSD.x之后，考虑到journal上还有一些没来得及flush到data partition的内容，因此，需要执行flush journal的操作
+第三步是flush journal。停掉OSD.x之后，考虑到journal上可能还有一些没来得及flush到data partition的内容，因此，需要执行flush journal的操作
 
 ```
 ceph-osd -i x -c /etc/ceph/ceph.conf --cluster ceph --flush-journal
