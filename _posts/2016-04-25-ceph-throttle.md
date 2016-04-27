@@ -193,11 +193,11 @@ max_delay = 10*expect_delay
 
 如果消费者处理线程的速度进一步下降，当水位到达1时，Throttle会将消息delay 10*expected_delay这么久，只要处理一个消息的时间低于10＊expected_delay,那么处理消息的速度还是会超过消息到来的速度，从而让积压的消息越来越少，水位也开始下降。
 
-我们以low水位为0.4，高水位为0.6，high_multiple =2  max_multiple = 10 为例，sleep的时间如下图所示。：
+我们以low水位为0.4，高水位为0.6，high_multiple =2  max_multiple = 10 为例，sleep的时间如下图所示。
 
 ![](/assets/ceph_internals/backoff_throttle.png)
 
-当然了，delay的单位为 expected_delay。
+当然了，delay的单位为 expected_delay,即 expected_throughput的倒数。
 
 
 这部分逻辑体现在如下部分代码：
