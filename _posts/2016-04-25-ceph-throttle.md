@@ -180,6 +180,26 @@ max_delay =  max_multiple ／ expecte_throughput
 
 当水位的值时1时，即max，延迟的值时max_delay,因此，从［h,1)这段区间内，也是线性增长，从high_delay一直增长到max_delay,只不过斜率不同罢了。
 
+然后我们再次回到expect_throught， 这个变量的作用和它的名字一样，即期待的吞吐量，如果取倒数，我们会得到期待的处理速度：
+
+expect_delay = 1 / expected_throughput 
+
+我们以high_multiple = 2  max_multiple = 10为例来讲解， 如果当前的水位是high，正好等于high，那么此时的delay是
+
+high_delay = 2* expected_delay
+max_delay = 10*expect_delay 
+
+即，如果消费者线程处理消息的速度是2*expected_delay, 那么水位会维持在high值，始终不变。 2＊expected_delay的时间正好处理完毕一个，而正好有一个新的消息进入需要处理。
+
+如果消费者处理线程的速度进一步下降，当水位到达1时，Throttle会将消息delay 10*expected_delay这么久，只要处理一个消息的时间低于10＊expected_delay,那么处理消息的速度还是会超过消息到来的速度，从而让积压的消息越来越少，水位也开始下降。
+
+我们以low水位为0.4，高水位为0.6，high_multiple =2  max_multiple = 10 为例，sleep的时间如下图所示。：
+
+![](/assets/ceph_internals/backoff_throttle.png)
+
+当然了，delay的单位为 expected_delay。
+
+
 这部分逻辑体现在如下部分代码：
 
 ```
