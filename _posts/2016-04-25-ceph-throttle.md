@@ -2,8 +2,8 @@
 layout: post
 title: ceph internal 之 Throttle
 date: 2016-04-26 21:34:40
-categories: ceph internal
-tag: ceph internal
+categories: ceph-internal
+tag: ceph-internal
 excerpt: 本文介绍ceph Throttle机制
 ---
 
@@ -193,7 +193,7 @@ max_delay = 10*expect_delay
 
 如果消费者处理线程的速度进一步下降，当水位到达1时，Throttle会将消息delay 10*expected_delay这么久，只要下游消费者处理一个消息的时间低于10＊expected_delay,那么处理消息的速度还是会超过消息到来的速度，从而让积压的消息越来越少，水位也开始下降。
 
-我们再次换一个角度，需要Throttle的是生产者线程，生产者的expected_throughput 是期望的throughput，如果下游的消费者因为种种原因，无力承担这么大的throughput，那么，当水位达到高水位的时候，线程会主动sleep，而且一个一个的放请求到下游。因此如果high_multiple ＝2 ，到达高水位时，瞬时的throughput值就变成了expected_throughput/2,当超过high level，进一步积压的话，惩罚加重，sleep时间变大的速率更大，到达max时，瞬时的throughput下降为expected_throughput/max_multiple,如果max_throughput 等于10，相当于人为地将throughput调整为expected_throughput/10 .
+我们再次换一个角度，需要Throttle的是生产者线程，生产者的expected_throughput 是期望的throughput，如果下游的消费者因为种种原因，无力承担这么大的throughput，那么，当水位达到低水位之后，线程就开始主动sleep，倒水位的时候，线程会主动sleep，而且一个一个的放请求到下游。因此如果high_multiple ＝2 ，到达高水位时，瞬时的throughput值就变成了expected_throughput/2,当超过high level，进一步积压的话，惩罚加重，sleep时间变大的速率更大，到达max时，瞬时的throughput下降为expected_throughput/max_multiple,如果max_throughput 等于10，相当于人为地将throughput调整为expected_throughput/10 .
 
 我们以low水位为0.4，高水位为0.6，high_multiple =2  max_multiple = 10 为例，sleep的时间如下图所示。
 

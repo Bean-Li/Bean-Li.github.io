@@ -1,9 +1,9 @@
 ---
 layout: post
-title: ceph internal 之buffer list
+title: ceph internal 之 buffer list
 date: 2016-04-24 21:34:40
-categories: ceph internal
-tag: ceph internal
+categories: ceph-internal
+tag: ceph-internal
 excerpt: bufferlist是ceph中一个重要的基础的数据结构。
 ---
 
