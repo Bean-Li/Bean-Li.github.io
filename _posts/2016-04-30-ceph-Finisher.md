@@ -17,7 +17,9 @@ Finisher是ceph的一个基础类，ceph的实现中有大量的回调，在回�
 
 我们以最基本写流程为例，:
 
-![](/assets/ceph_internal/ceph_osd_write.png)
+![](/assets/ceph_internals/ceph_osd_write.png)
+
+图片来自dong_wu大神的[CEPH OSD 读写流程（2）](http://www.sysnote.org/?p=265)，无意盗取，作者介意的话立删。
 
 上图中就有多个Finisher，其实Finisher的本质是任务队列和线程：
 
