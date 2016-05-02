@@ -15,7 +15,7 @@ Finisher是ceph的一个基础类，ceph的实现中有大量的回调，在回�
 基础数据结构
 -------
 
-我们以最基本写流程为例，:
+我们以最基本写流程为例：
 
 ![](/assets/ceph_internals/ceph_osd_write.png)
 
