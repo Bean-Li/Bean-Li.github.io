@@ -121,7 +121,7 @@ root@node186:/home# ls -lid  */
 
 不难看出，/home/下的目录，设置了EXT4_INODE_TOPDIR标志后，采用散开的策略。
 
-##lsattr :: I
+## lsattr :: I
 
 前面曾经介绍过[dir_index属性](https://bean-li.github.io/EXT4_DIR_INDEX/)，当目录下的条目比较少时，一个block（默认4KB）能够存放下所有的条目时，采用线性方法存放条目。但是随着目录下的条目越来越多，一个4K页面已经存放不下的时候，EXT4会采用hash tree的方式存放。如何判断当前目录时采用了linear 还是 hash tree的方式存放目录的呢？
 
