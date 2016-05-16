@@ -53,12 +53,12 @@ ceph官网 [build ceph](http://docs.ceph.com/docs/master/install/build-ceph/)已
 
 5. 准备构建文件
 
-  ```
+ ```
   cp ceph/ceph-0.87.2.tar.bz2  ~/rpmbuild/SOURCES/
   cp ceph/rpm/init-ceph.in-fedora.patch ~/rpmbuild/SOURCES/
   cp ceph/ceph.spec ~/rpmbuild/SPECS
   
-  ```
+ ```
   
 6. build
 
@@ -72,13 +72,13 @@ build结束之后，会在~/rpmbuild/RPMS/x86_64/下看到编译出来的RPMS
 ## install jenkins in RHEL7
 
 
-安装依赖
+* 安装依赖
 
 ```
 yum install java-1.8.0-openjdk-headless dejavu-sans-fonts fontconfig
 ```
 
-安装jenkins repo
+* 安装jenkins repo
 
 ```
 cd /etc/yum.repos.d/
@@ -86,13 +86,13 @@ curl -O http://pkg.jenkins-ci.org/redhat-stable/jenkins.repo
 rpm --import https://jenkins-ci.org/redhat/jenkins-ci.org.key
 ```
 
-安装jenkins
+* 安装jenkins
 
 ```
 yum install jenkins
 ```
 
-修改jenkins home目录
+* 修改jenkins home目录,将家目录设置成/home/jenkins/
 
 usermod -m -d /home/jenkins jenkins
 
@@ -100,14 +100,14 @@ vim  /etc/sysconfig/jenkins
 
 ![](/assets/LINUX/jenkins_home.png)
 
-设置开机自启动和启动jenkins 服务
+* 设置开机自启动和启动jenkins 服务
 
 ```
 systemctl enable jenkins.service
 systemctl start jenkins.service 
 ```
 
-设置firewalld
+* 设置firewalld
 
 ```
 firewall-cmd --zone=public --add-port=8080/tcp --permanent
@@ -116,7 +116,7 @@ firewall-cmd --reload
 firewall-cmd --list-all
 ```
 
-通过 http://ip:8080来访问Jenkins服务。
+* 通过 http://ip:8080来访问Jenkins服务。
 
 
 ## 部署jenkins job来编译ceph
