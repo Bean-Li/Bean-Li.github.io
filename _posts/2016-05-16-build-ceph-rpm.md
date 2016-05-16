@@ -1,7 +1,7 @@
 ---
 layout: post
 title: build ceph RPM from source code
-date: 2016-05-07 14:44:40
+date: 2016-05-16 21:39:40
 categories: ceph
 tag: ceph
 excerpt: 本文介绍如何从ceph 源码编译ceph RPM
