@@ -1,7 +1,7 @@
 ---
 layout: post
 title: check e2fsck progress realtime
-date: 2016-05-16 21:39:40
+date: 2016-05-21 15:52:40
 categories: linux
 tag: linux
 excerpt: 实时检查e2fsck 的进度
