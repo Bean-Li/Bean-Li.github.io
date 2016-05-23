@@ -20,7 +20,9 @@ excerpt: 如果上次启动失败或者进入了Recovery mode，下次启动会�
 
 ## 解决方法
 
-第一步：/etc/default/grub中，可以添加一个GRUB_RECORDFAIL_TIMEOUT参数，该参数：
+
+
+第一步：/etc/default/grub中，可以添加一个GRUB\_RECORDFAIL_TIMEOUT参数，该参数：
 
 * GRUB\_RECORDFAIL_TIMEOUT ＝ -1 并不倒计时数秒，GRUB menu会出现
 * GRUB\_RECORDFAIL_TIMEOUT ＝ 0  grub menu不会出现
@@ -69,10 +71,23 @@ ii  grub2-common                     1.99-21ubuntu3.19                   GRand U
 238 EOF
 ```
 
-从逻辑上分析，如果设置了GRUB_RECORDFAIL_TIMEOUT，那么timeout即为GRUB_RECORDFAIL_TIMEOUT的值，否则为30秒。
-如果用户使用的最新的1.99-21ubuntu3.19这个版本，应该第二步无须去做。
+从逻辑上分析，如果设置了GRUB\_RECORDFAIL\_TIMEOUT，那么timeout即为GRUB\_RECORDFAIL_TIMEOUT的值，否则为30秒。
+这个改进是为了修复[Bug 1443735] Re: recordfail false positive causes
+headless servers to hang on boot by default
 
-当然了这些都是我的推理，并未从实践证明。
+```
+
+Version: 1.99-21ubuntu3.18	2015-07-08 05:07:08 UTC
+  grub2 (1.99-21ubuntu3.18) precise; urgency=medium
+
+  * Do not hang headless servers indefinitely on boot after edge case power 
+    failure timing (LP: #1443735). Instead, time out after 30 seconds and boot 
+    anyway, including on non-headless systems.
+
+ -- Robie Basak Tue, 19 May 2015 12:22:34 +0100
+```
+
+如果你的GRUB比这个版本要新，引入了这个修复，那么第二步就不需要了，直接设置GRUB\_RECORDFAIL_TIMEOUT即可执行第三步了。
 
 第三部：备份/etc/boot/grub.cfg 并执行 update-grub
 
@@ -96,3 +111,10 @@ def patch_grub_conf():
     do_cmd("sed -i '236s/timeout=.*/timeout=6/' {}".format(grub_00_header))
     do_cmd("update-grub")
 ```
+
+
+## 结束语
+其实如果升级到1.99-21ubuntu3.18 及以上版本，就不会出现这个无限制等待的问题，最简单的方法当然是升级grub2-common。
+如果升级觉得风险大的话，可以考虑patch grub的配置文件。
+
+
