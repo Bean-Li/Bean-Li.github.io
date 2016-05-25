@@ -402,10 +402,10 @@ Total errors: 0
 
 | hardware type              | reboot                         |      shutdown   | 长按关机键      |   拔电源        |
 | -------------------------- | ------------------------------ |-----------------|---------------|-----------------|
-| `RAID + DISK Cache Enable`      |  OK OK OK OK | OK OK         | OK ERR ERR  | ERR ERR
-| `RAID + DISK Cache Disable`   | OK OK OK OK    | OK OK         | OK OK OK    | OK OK
-| `DISK + Write Cache Enable`   | OK OK OK OK    | OK OK         | OK OK OK    | OK OK
-| `DISK + Write Cache Disable`   | OK OK OK OK    | OK OK         | OK OK OK    | OK OK
+| `RAID + DISK Cache Enable`      |  OK OK OK OK                 | OK OK         | OK ERR ERR  | ERR ERR
+| `RAID + DISK Cache Disable`   | OK OK OK OK                    | OK OK         | OK OK OK    | OK OK
+| `DISK + Write Cache Enable`   | OK OK OK OK                    | OK OK         | OK OK OK    | OK OK
+| `DISK + Write Cache Disable`  | OK OK OK OK                    | OK OK         | OK OK OK    | OK OK
 
 
 从测试结果上看，
