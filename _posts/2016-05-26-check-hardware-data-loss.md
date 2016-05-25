@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  检查硬件是否能够扛住异常掉电而不丢失数据的方法
+title: Can hardware withstand Power Failure without data loss
 date: 2016-05-26 22:33:40
 categories: linux
 tag: linux
