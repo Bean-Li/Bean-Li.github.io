@@ -487,3 +487,6 @@ string LFNIndex::lfn_generate_object_name_current(const ghobject_t &oid)
 ## 结束语
 
 对象是如何在底层文件系统分布的。同一个PG下的对象可能千千万万，Ceph如何将这些对象高效地组织起来？ 这是后面的内容。
+而且还有一点，本文并没有解释long file name 时候的处理方式。这也留待后面解说。
+
+
