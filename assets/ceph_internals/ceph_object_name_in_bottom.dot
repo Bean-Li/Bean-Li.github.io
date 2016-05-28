@@ -1,0 +1,18 @@
+digraph {	
+	rankdir = TD
+	node [shape = record,width = 2  ]
+
+        objecter [label = " <1> objectname |<2>  key | <3> snap_num  |<4> hash  |<5> namespace | <6> pool_id" ]
+
+        example [label = " <1> 100000052f4.00000023 |<2> null |<3> head |<4> 38D9DDA4 | <5> null | <6> 2 "]
+
+        objecter:1->example:1
+        objecter:2->example:2
+        objecter:3->example:3
+        objecter:4->example:4
+        objecter:5->example:5
+        objecter:6->example:6
+
+        label = "\n  100000052f4.00000023__head_38D9DDA4__2"
+
+}
