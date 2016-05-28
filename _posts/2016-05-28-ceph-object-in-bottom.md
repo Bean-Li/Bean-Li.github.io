@@ -101,9 +101,9 @@ private:
 
 oid 和snap 就不赘述了，这个结构体新增了 hash 和key 以及pool的字段。
 
-int64\_t pool： 对象所属的pool
-string  key :
-uint32\_t  hash: 
+* int64\_t pool： 对象所属的pool
+* string  key :
+* uint32\_t  hash: 
 
 key 和 hash不能同时指定，而更常见的是hash。
 
@@ -237,7 +237,7 @@ root@host186:~# ceph daemon mds.waotp config show |grep dir_hash
 我们以拥有1024个PG的pool为例，上述对象的hash是 38D9DDA4，我们可以很轻易的将该值map到对应的pg上
 
 ```
-pg_index =  hash ％ pg_num
+pg_index =  hash % pg_num
 ```
 上述计算可以得到，1A4，因此，该对象属于 pool 2下属的 1A4 这个PG，因此，我们看对象所在的路径，它的确落在2.1a4_head这个路径。
 
