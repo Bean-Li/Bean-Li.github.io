@@ -2,8 +2,8 @@
 layout: post
 title: ceph internal 之 底层对象
 date: 2016-05-28 20:11:40
-categories: ceph_internal
-tag: ceph_internal
+categories: ceph-internal
+tag: ceph-internal
 excerpt: 本文学习下ceph底层对象相关的数据结构
 ---
 
