@@ -16,7 +16,7 @@ excerpt: 本文学习下ceph底层如何处理long object name
 
 ![](/assets/ceph_internals/ceph_object_name_in_bottom.png)
 
-这里面又一个漏洞，即object name的长度。
+这里面有一个漏洞，即object name的长度，如果object name长度太长，超过了本地文件系统所能支持的最长长度怎么办？
 
 ### cephfs
 
@@ -126,7 +126,7 @@ Date:   Wed Jul 16 14:17:27 2014 -0700
 
 但是很不幸，本地文件系统并没有这么强悍，支持的文件名长度都有限：
 
-|file system       |max length in bytes  |
+|FS     |max filename length in bytes  |
 |------------------|---------------------|
 |EXT4              | 255          
 |XFS               | 255
@@ -311,12 +311,14 @@ root@185node:/data/osd.0/current/15.15b_head#
 * user.cephos.lfn3@1
 
 ceph将object 所有需要的信息都存放在 user.cephos.lfn$INDEX_VERSION 这个扩展属性里面。 但是为什么冒出来个user.cephos.lfn3@1，
-这就是chain_xattr的含义了。2个Linux 扩展属性信息存放的是一笔扩展属性，仅仅是因为EXT4这个本地文件系统能存放的数据非常有限 2K，没有办法将value存放在单个key对应的 扩展属性里面，所以使用多个key来描述一个属性。这就是chain_xattr中chain的含义。
+这就是chain_xattr的含义了。2个Linux 扩展属性信息存放的是一笔扩展属性，仅仅是因为EXT4这个本地文件系统扩展属性中value能存放的数据非常有限 2K，没有办法将value存放在单个key对应的 扩展属性里面，所以使用多个key来描述一个属性。这就是chain_xattr中chain的含义。
 
 
 即如果你希望存放一个key value到Linux文件系统的某个文件的扩展属性中，受限于扩展属性能容纳的value长度有限，你不得不这么存放：
 
+```
 key key@1 key@2 key@3 
+```
 
 
 
