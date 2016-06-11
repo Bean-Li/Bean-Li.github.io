@@ -1,10 +1,10 @@
 ---
 layout: post
-title: apache请求的处理事件
+title: apache请求的处理时间
 date: 2016-06-11 21:43:40
 categories: linux
 tag: apache
-excerpt: 获取apache请求的处理事件
+excerpt: 获取apache请求的处理时间
 ---
 
 ## 前言
