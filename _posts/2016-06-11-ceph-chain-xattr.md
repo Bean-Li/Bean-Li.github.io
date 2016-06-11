@@ -1,7 +1,7 @@
 ---
 layout: post
 title: ceph internal 之 chain_xattr
-date: 2016-05-29 14:57:40
+date: 2016-06-11 14:57:40
 categories: ceph-internal
 tag: ceph-internal
 excerpt: 本文学习下filestore下chain_xattr相关部分。
@@ -11,7 +11,7 @@ excerpt: 本文学习下filestore下chain_xattr相关部分。
 
 ObjectStore是ceph OSD中最重要的一个概念，它封装了所有对底层存储的IO操作。
 
-![](assets/ceph_internals/classObjectStore__inherit__graph.png)
+![](/assets/ceph_internals/classObjectStore__inherit__graph.png)
 
 对于底层存储而言，底层的基本元素不再是文件，而是Object。对于任何一种Object，最多有以下三个组成部分
 
