@@ -1,8 +1,8 @@
 ---
 layout: post
 title: ceph peering state model
-date: 2016-06-11 21:43:40
-categories: ceph
+date: 2016-06-26 14:43:40
+categories: ceph-internal
 tag: ceph-internal
 excerpt: peer state machine 
 ---
