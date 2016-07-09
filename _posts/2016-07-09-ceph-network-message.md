@@ -19,7 +19,7 @@ excerpt: ceph 网络层代码分析
 ```
 conn = messenger->get_connection(dest_server);
 ```
-如果创建新的Pipe，会调用connect_rank
+如果需要创建新的Pipe，会调用connect_rank函数，如下所示：
 
 
 ```
@@ -33,13 +33,15 @@ Pipe *SimpleMessenger::connect_rank(const entity_addr_t& addr,
   
   ldout(cct,10) << "connect_rank to " << addr << ", creating pipe and registering" << dendl;
   
-  // create pipe
+  // 创建新的Pipe，并且将Pipe的状态设置为STATE_CONNECTING,这很重要
   Pipe *pipe = new Pipe(this, Pipe::STATE_CONNECTING,
 			static_cast<PipeConnection*>(con));
   pipe->pipe_lock.Lock();
   pipe->set_peer_type(type);
   pipe->set_peer_addr(addr);
   pipe->policy = get_policy(type);
+  
+  /*启动Pipe的写线程*/
   pipe->start_writer();
   if (first)
     pipe->_send(first);
@@ -85,7 +87,7 @@ void Pipe::writer()
 }
     
 ```
-当Pipe处于Pipe::STATE_CONNECTING状态，writer函数会调用Pipe::connect函数，我们不妨看看该函数：
+当Pipe处于Pipe::STATE_CONNECTING状态，writer函数会调用Pipe::connect函数，该函数负责与服务器建立连接，真正意义上的通信通道，我们不妨看看该函数：
 
 ```
 int Pipe::connect()
@@ -142,7 +144,7 @@ int Pipe::connect()
   }
 ```
 
-很明显，服务器端的Accepter正阻塞在accept系统调用上等待client调用connect系统调用来连，一旦连接建立，accept函数就返回了，对于服务器端调用了
+client端通过Pipe::connect函数，会真正地调用connect系统调用，尝试连接服务器端的监听地址；在通信的另一端，服务器端的Accepter线程正阻塞在accept系统调用上，等待client调用connect系统调用来连，一旦服务器端的accept函数返回，Accepter中的线程就会调用add_accept_pipe函数来创建一个新的Pipe，全权负责和client的通信。创建出来Pipe之后，Accepter线程不敢恋战，而是继续调用accept系统调用，等待新的连接。如下所示：
 
 ```
 void *Accepter::entry()
@@ -181,9 +183,13 @@ void *Accepter::entry()
 Pipe *SimpleMessenger::add_accept_pipe(int sd)
 {
   lock.Lock();
+  
+  /*创建Pipe，接管与Client端的通信事宜，以便让Accepter线程即使返回，继续调用accept，等待新连接*/
   Pipe *p = new Pipe(this, Pipe::STATE_ACCEPTING, NULL);
   p->sd = sd;
   p->pipe_lock.Lock();
+  
+  /*启动Pipe的读线程，由于新的Pipe初始状态是ACCEPTING，因此会读线程会调用Pipe::accept函数，和client端建立会话*/
   p->start_reader();
   p->pipe_lock.Unlock();
   pipes.insert(p);
@@ -192,7 +198,7 @@ Pipe *SimpleMessenger::add_accept_pipe(int sd)
   return p;
 }
 ```
-注意，新创建的Pipe处于Pipe::STATE_ACCEPTING，对于Pipe的读线程而言，其主函数是Pipe::reader
+注意，新创建的Pipe处于Pipe::STATE_ACCEPTING，Pipe的读线程的主函数是Pipe::reader,在该函数中，如果Pipe状态是STATE_ACCEPTING，会调用accept函数和client进行通信，创建会话。如下所示
 
 ```
 void Pipe::reader()
@@ -259,9 +265,9 @@ server端的代码我就不贴了.
 #define CEPH_BANNER "ceph v027"
 ```
 
-通过BANNER暗号之后，互相向对方通告自己的地址，最重要的逻辑是connection message。很明显Pipe::connect和Pipe::accept函数下半段有一大段很难懂的代码。
+通过BANNER暗号之后，互相向对方通告自己的地址。这一部分逻辑并无特别，就不展开了。
 
-这段代码的用途在于，服务器端会校验这些连接信息并确保面向这个地址的连接只有一条。
+最重要的逻辑是connection message的沟通和交互。很明显Pipe::connect和Pipe::accept函数下半段有一大段很难懂的代码。这段代码的用途在于，服务器端会校验这些连接信息并确保面向这个地址的连接只有一条。
 
 client端首先会发送一个ceph_msg_connect的结构体，
 
@@ -325,13 +331,13 @@ struct ceph_msg_connect {
 
 ```
 
-client端将 本端的global_seq和 connect_seq发送到了服务器端。服务器端会首先查找是否存在该地址的Pipe
+client端将 本端的global\_seq和 connect_seq发送到了服务器端。服务器端会首先查找是否已经存在负责和client端通信的的Pipe
 
 ```
  existing = msgr->_lookup_pipe(peer_addr);
 ```
 
-如果不存在已有的Pipe，问题就简单了：
+如果不存在已有的Pipe，问题就简单了，根据client端发过来的connect.connect_seq是否为0，分成两种情况：
 
 ```
 else if (connect.connect_seq > 0) {
@@ -350,7 +356,7 @@ else if (connect.connect_seq > 0) {
     }
 ```
 
-对于新连接而言，一般connect.connect\_seq 总是等于0。对于这种情况，
+对于新连接而言，一般connect.connect\_seq 总是等于0。这时候，只需要将状态转换成STATE\_OPEN，同时发送回应给client 端就行了，如下所示：
 
 ```
 open:
@@ -437,9 +443,10 @@ open:
 
 ```
 
-当然如果服务器端reset了，需要通过CEPH\_MSGR\_TAG\_RESETSESSION tag告知client端，client端收到这个tag之后，会执行was\_session\_reset函数，然后将cseq设置成0，然后重新发送 connect message。
+但是如果client端发过来的connect_seq不是0，而服务器端有找不到负责和client地址通信的Pipe，那就说明服务器端reset了，需要通过CEPH\_MSGR\_TAG\_RESETSESSION tag告知client端，client端收到这个tag之后，会执行was\_session\_reset函数，然后将cseq设置成0，然后重新发送 connect message。
 
 ```
+/*client端收到CEPH_MSGR_TAG_RESETSESSION，执行的动作*/
     if (reply.tag == CEPH_MSGR_TAG_RESETSESSION) {
       ldout(msgr->cct,0) << "connect got RESETSESSION" << dendl;
       was_session_reset();
