@@ -10,7 +10,8 @@ excerpt: ceph 网络层代码分析
 ## 前言
 网络层的代码确实太长，所以不得不分成多篇文章来讲。
 
-上一篇博客，Accepter，Connection，Pipe，PipeConnection，都亮相了。还有最重要的部分，即到底如何和发送消息，如何处理消息，以及如何回应。这篇文章中Dispatcher以及DispatchQueue就成了主角。
+上一篇博客，Accepter，Connection，Pipe，PipeConnection，都亮相了。还有最重要的部分，即到底如何和发送消息，如何处理消息，以及如何回应。这篇文章会介绍client端和server端会话的建立。
+
 
 ## Pipe的connect和accept
 
@@ -133,7 +134,7 @@ int Pipe::connect()
 
   set_socket_options();
 
-  /*发起连接，事实上Accepter类的对应的工作线程正阻塞在accept系统调用上，等待client端的连接*/
+  /*发起连接，事实上在Server端Accepter类的对应的工作线程正阻塞在accept系统调用上，等待client端的连接*/
   ldout(msgr->cct,10) << "connecting to " << peer_addr << dendl;
   rc = ::connect(sd, peer_addr.get_sockaddr(), peer_addr.get_sockaddr_len());
   if (rc < 0) {
@@ -144,7 +145,7 @@ int Pipe::connect()
   }
 ```
 
-client端通过Pipe::connect函数，会真正地调用connect系统调用，尝试连接服务器端的监听地址；在通信的另一端，服务器端的Accepter线程正阻塞在accept系统调用上，等待client调用connect系统调用来连，一旦服务器端的accept函数返回，Accepter中的线程就会调用add_accept_pipe函数来创建一个新的Pipe，全权负责和client的通信。创建出来Pipe之后，Accepter线程不敢恋战，而是继续调用accept系统调用，等待新的连接。如下所示：
+client端通过Pipe::connect函数，会真正地调用connect系统调用，尝试连接服务器端的监听地址；在通信的另一端，服务器端的Accepter线程正阻塞在accept系统调用上，等待client调用connect系统调用来连，一旦服务器端的accept函数返回，Accepter中的线程就会调用add_accept_pipe函数来创建一个新的Pipe，全权负责和client的通信。创建出来Pipe之后，Accepter类的主线程不敢恋战，而是继续下一个循环，即调用accept系统调用，等待新的连接。如下所示：
 
 ```
 void *Accepter::entry()
@@ -443,7 +444,7 @@ open:
 
 ```
 
-但是如果client端发过来的connect_seq不是0，而服务器端有找不到负责和client地址通信的Pipe，那就说明服务器端reset了，需要通过CEPH\_MSGR\_TAG\_RESETSESSION tag告知client端，client端收到这个tag之后，会执行was\_session\_reset函数，然后将cseq设置成0，然后重新发送 connect message。
+但是如果client端发过来的connect_seq不是0，而服务器端又找不到负责和client地址通信的Pipe，那就说明服务器端reset了，需要把这个情况通过CEPH\_MSGR\_TAG\_RESETSESSION tag告知client端，client端收到这个tag之后，会执行was\_session\_reset函数，然后将cseq设置成0，然后重新发送 connect message。
 
 ```
 /*client端收到CEPH_MSGR_TAG_RESETSESSION，执行的动作*/
@@ -480,7 +481,7 @@ void Pipe::was_session_reset()
 }
 ```
 
-如果在服务器端找到了面向client端的连接，那么需要根据收到的client端发过来的global\_seq和connect\_seq和服务器端的global_seq和connect\_seq的值的关系，来判断发生的事情，采取不同的行动。
+前面讨论的是服务器端找不到client addr通信的Pipe，如果在服务器端找到了面向client端的Pipe，那么需要根据收到的client端发过来的global\_seq和connect\_seq和服务器端的global_seq和connect\_seq的值的关系，来判断当前的情况，采取不同的行动。
 
 比如 client端发过来的connect\_seq ＝ 0 ，而服务器端的connect\_seq不是0，那么表明，client端的会话重置了，而服务器的正确的行为是清掉老的的会话，然后用新的Pipe来替换。
 
