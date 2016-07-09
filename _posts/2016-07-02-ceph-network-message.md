@@ -698,7 +698,7 @@ void Pipe::start_writer()
 }
 ```
 
-Pipe的reader\_thread的主函数是执行的是 pipe->reader(),刚刚创建的时候，Pipe处于Pipe::STATE\_ACCEPTING状态，在reader函数中，如果状态处于Pipe::STATE\_ACCEPTING，会进行执行Pipe::accept,在该函数中，会调用start_writer，启动Pipe的写线程：
+Pipe的reader\_thread的主函数是执行的是 pipe->reader(),刚刚创建的时候，Pipe处于Pipe::STATE\_ACCEPTING状态，而在Pipe::reader函数中，如果状态处于Pipe::STATE\_ACCEPTING，会进行执行Pipe::accept,在该函数中，会调用start_writer，启动Pipe的写线程：
 
 ```
 
@@ -727,7 +727,17 @@ int Pipe::accept()
 }
 ```
 
-至此，我们开始进入网络通信的深水区了。掀起腥风血雨之前，我们先讲先Connection。
+转到另一面，connect\_rank中，新创建的Pipe处于STATE\_CONNECTING状态。
+
+```
+  Pipe *pipe = new Pipe(this, Pipe::STATE_CONNECTING,
+			static_cast<PipeConnection*>(con));
+```
+writer_thread的主函数是Pipe::writer，在该函数中，如果Pipe处于STATE\_CONNECTING状态，会调用Pipe::connect函数。
+
+此处和Linux socket通信十分吻合。那么Pipe的accept方法和connect方法到底干了哪些事情呢？我们先不展开，这个深水的内容放到下一篇。
+我们先讲讲Connection。
+
 
 #### Connection
 
