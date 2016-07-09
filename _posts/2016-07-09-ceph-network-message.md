@@ -7,7 +7,7 @@ tag: ceph-internal
 excerpt: ceph 网络层代码分析
 ---
 
-##前言
+## 前言
 网络层的代码确实太长，所以不得不分成多篇文章来讲。
 
 上一篇博客，Accepter，Connection，Pipe，PipeConnection，都亮相了。还有最重要的部分，即到底如何和发送消息，如何处理消息，以及如何回应。这篇文章中Dispatcher以及DispatchQueue就成了主角。
