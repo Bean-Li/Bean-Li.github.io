@@ -596,7 +596,7 @@ ConnectionRef SimpleMessenger::get_connection(const entity_inst_t& dest)
 
 ```
 
-注意，首先是尝试查找已经存在的Pipe(通过_loopup_pipe)，如果可以复用，就不再创建，否则就调用connect_rank来创建Pipe，如下所示：
+注意，首先是尝试查找已经存在的Pipe(通过_lookup_pipe)，如果可以复用，就不再创建，否则就调用connect_rank来创建Pipe，如下所示：
 
 ```
 Pipe *SimpleMessenger::connect_rank(const entity_addr_t& addr,
