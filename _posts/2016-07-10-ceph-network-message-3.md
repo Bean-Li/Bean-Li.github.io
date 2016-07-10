@@ -177,7 +177,7 @@ Pipe类中有如下成员：
     
 ```
 
-消息接收及处理部分，牵扯到Pipe下属的一个重要数据结构，DispatchQueu in_q
+消息接收及处理部分，牵扯到Pipe下属的一个重要数据结构，DispatchQueue in_q
 
 ```
     DispatchQueue *in_q;
@@ -203,7 +203,7 @@ class DispatchQueue {
 }
 ```
 
-mqueue是一个优先队列，队列中的元素有优先级，处理的时候，优先处理优先级高的消息，因此in_q->enqueue调用的时候，需指定消息的优先级，比如上面队列的代码：
+mqueue是一个优先队列PrioritizedQueue，队列中的元素有优先级，处理的时候，优先处理优先级高的消息，因此in_q->enqueue调用的时候，需指定消息的优先级，比如上面队列的代码：
 
 ```
  in_q->enqueue(m, m->get_priority(), conn_id);
