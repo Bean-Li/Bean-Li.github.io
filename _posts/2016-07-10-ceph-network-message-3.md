@@ -57,7 +57,30 @@ Pipe类中有如下成员：
 
 该成员就是个优先队列。send_message并没有将消息发送给目的端，仅仅是丢掉了对应优先级的队列中，那么何时才真正地发送出去呢？Pipe的写线程负责此事。
 
-发送部分的脉络比较清晰，下面看一下消息的接收
+Pipe::_send函数中中的cond.Signal会唤醒Pipe的写线程，如果写线程在沉睡的话：
+
+```
+void Pipe::writer()
+{
+  pipe_lock.Lock();
+  while (state != STATE_CLOSED) {// && state != STATE_WAIT) {
+  ...
+      // wait
+    ldout(msgr->cct,20) << "writer sleeping" << dendl;
+    cond.Wait(pipe_lock);
+  
+  }
+  ...
+}
+```
+消息进了队列，写线程也可以被及时唤醒。如此，写线程就可以处理消息了。处理消息的逻辑即上图中的
+
+```
+Pipe::_get_net_outgoing   从优先队列out_q中取出下一跳要发送的消息
+Pipe::write_message       发送到对端
+```
+
+发送部分的脉络比较清晰，下面看一下消息的接收。
 
 
 ## 消息的接收
@@ -424,6 +447,20 @@ m->get_connection()->send_message(r);
 ![](/assets/ceph_internals/simple_process_message.jpg)
 
 到此为止，通信模块全部介绍完毕了
+
+## 尾声
+Pipe代码非常有意思，有很多相互对应的逻辑，比如
+
+```
+write_message和read_message 是一对好基友
+Pipe::connect 和 Pipe::accept是一对好基友
+Pipe::reader 和Pipe::writer 是一对好基友
+```
+互相对照着看代码，很有意思。
+
+另外一个值得深入探讨的是PioritizeQueue这个数据结构，也很有意思，值得一篇文章深入探讨下。
+
+
 
 
 ## 参考文献
