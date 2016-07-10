@@ -36,6 +36,7 @@ int PipeConnection::send_message(Message *m)
 OK ,我们的起点是SimpleMessenger的sendmsg方法。
 （下图来自YY哥的[Ceph源码解析：网络模块](https://hustcat.github.io/ceph-internal-network/)）
 
+
 ![](/assets/ceph_internals/simple_sendmsg.jpg)
 
 对于Pipe的_send函数而言，就是简单地将消息放到out_q这个优先队列中。
@@ -420,7 +421,7 @@ m->get_connection()->send_message(r);
 
 为了方便理解流程，使用一张图来概括消息接收的流程，该图来自YY哥的[Ceph源码解析：网络模块](https://hustcat.github.io/ceph-internal-network/)
 
-![](/assets/ceph_internals/simple_process_message.jgp)
+![](/assets/ceph_internals/simple_process_message.jpg)
 
 到此为止，通信模块全部介绍完毕了
 
