@@ -1,0 +1,11 @@
+    digraph {
+
+        label = "\n 图 flashcache layout";
+
+        node [shape = record];
+
+        contents [label = " { 超级块 | md_block_size(4K) } | { 元数据块0 | md_block_size } | { 元数据块1| md_block_size } | { 元数据块... | \ md_block_size } | { 元数据块 N | md_block_size} |   { <data> 数据块 | many block size             } "];
+
+   
+
+    }
