@@ -4,7 +4,7 @@ title: 重新打包deb
 date: 2016-07-19 14:43:40
 categories: linux
 tag: 重新打包deb
-excerpt: 
+excerpt: 本文介绍重新打包deb package的方法
 ---
 
 ## 前言
