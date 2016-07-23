@@ -168,7 +168,65 @@ MD_SLOTS_PER_BLOCK  ＝ block_size / sizeof(flash_cacheblock)  = 每个block能�
 
 ![](/assets/LINUX/flashcache_layout.png)
 
-值得一提的是，除了落在SSD上的元数据信息外，在内存中也要想好相当可观的内存。每一个数据块要消耗24Byte的内存，因此，300G的SSD，如果4K一个block块，对于WriteBack模式，需要消耗1.8G左右的内存。
+值得一提的是，除了落在SSD上的元数据信息外，在内存中也要想好相当可观的内存。flashcache早期的版本每一个数据块要消耗24Byte的内存，因此，300G的SSD，如果4K一个block块，对于WriteBack模式，需要消耗1.8G左右的内存。
+
+后来69fae2ff72c0606e8c00249621365cfbb877531f commit做了改进，每一个数据块在内存中的数据结构消耗18 Byte，节省了不少内存。还是以300G的SSD为例，如果4K一个block块，对于writeback模式，消耗1.35G左右的内存。
+
+```
+commit 69fae2ff72c0606e8c00249621365cfbb877531f
+Author: Mohan Srinivasan <mohan@fb.com>
+Date:   Tue Aug 6 08:28:33 2013 -0700
+
+    Make each in-memory cacheblock state packed - 18 bytes each.
+
+    Summary: Make 'struct cacheblock' a packed struct. So it fits in
+    18 bytes (down from 24 bytes).
+
+    Ported forward from facebook's internal repo.
+
+    Test Plan:
+
+    Reviewers:
+
+    CC:
+
+    Task ID: #
+
+    Blame Rev:
+
+diff --git a/src/flashcache.h b/src/flashcache.h
+index 0f37e99..281eab8 100644
+--- a/src/flashcache.h
++++ b/src/flashcache.h
+@@ -425,7 +425,7 @@ struct cacheblock {
+ #ifdef FLASHCACHE_DO_CHECKSUMS
+        u_int64_t       checksum;
+ #endif
+-};
++} __attribute__((packed));
+
+ struct flash_superblock {
+        sector_t size;          /* Cache size */
+(END)
+```
+
+那么内存中的数据结构到底存放了哪些内容呢？ 我们看下定义：
+
+```
+/* Cache block metadata structure */
+struct cacheblock {
+	u_int16_t	cache_state;
+	int16_t 	nr_queued;	/* jobs in pending queue */
+	u_int16_t	lru_prev, lru_next;
+	u_int8_t        use_cnt;
+	u_int8_t        lru_state;
+	sector_t 	dbn;	/* Sector number of the cached block */
+	u_int16_t	hash_prev, hash_next;
+#ifdef FLASHCACHE_DO_CHECKSUMS
+	u_int64_t 	checksum;
+#endif
+} __attribute__((packed));
+```
 
 ## flashcache mode
 
@@ -192,6 +250,43 @@ enum {
 
 ![](/assets/LINUX/flashcache_mode.png)
 
+
+在最常用的writeback模式中，还有一个特殊的选项，即writecache：只有write才回使用SSD做的cache，而读直接读取慢速的硬盘。
+这种场景适用于读缺失杂乱无章，读命中的概率非常低的情况。
+
+当我们调用flashcache_create 创建flashcache的时候，加上－w option即可变成writecache
+
+```
+-w : write cache mode. Only writes are cached, not reads
+```
+
+在下面提到的flashcache_read中有如下语句：
+
+```
+spin_lock_irqsave(&dmc->ioctl_lock, flags);
+	if (res == -1 || dmc->write_only_cache || flashcache_uncacheable(dmc, bio)) {
+		spin_unlock_irqrestore(&dmc->ioctl_lock, flags);
+		/* No room , non-cacheable or sequential i/o means not wanted in cache */
+		if ((res > 0) && 
+		    (dmc->cache[index].cache_state == INVALID))
+			/* 
+			 * If happened to pick up an INVALID block, put it back on the 
+			 * per cache-set invalid list
+			 */
+			flashcache_invalid_insert(dmc, index);
+		flashcache_setlocks_multidrop(dmc, bio);
+		DPRINTK("Cache read: Block %llu(%lu):%s",
+			bio->bi_sector, bio->bi_size, "CACHE MISS & NO ROOM");
+		if (res == -1)
+			flashcache_clean_set(dmc, hash_block(dmc, bio->bi_sector), 0);
+		/* Start uncached IO */
+		flashcache_start_uncached_io(dmc, bio);
+		return;
+	} else 
+		spin_unlock_irqrestore(&dmc->ioctl_lock, flags);
+```
+
+注意dmc->write_only_cache, 当我们设置了WRITECACHE模式，我们就会调用flashcache_start_uncached_io，绕过SSD，直接从HDD中读取内容。
 
 
 ## SSD中数据块于HDD中数据块的对应关系
