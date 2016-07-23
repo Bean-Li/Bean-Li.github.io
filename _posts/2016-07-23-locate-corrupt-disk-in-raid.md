@@ -13,7 +13,7 @@ excerpt: RAID中某个盘发生故障，需要替换，如何确定它的位置�
 
 ![](/assets/LINUX/iostat_high_srvtm.jpg)
 
-在某客户环境发现，系统盘的util居高不下，上时间是100%，但是无论read 还是write的压力并不大，svctm却大的吓人。操作系统是两块盘组成的RAID1，我们需要看下RAID 1 中是否存在损坏的盘。
+在某客户环境发现，系统盘的util居高不下，很多时候都是100%，但是无论read 还是write的压力并不大，svctm却大的吓人。操作系统是两块盘组成的RAID 1，我们需要看下RAID 1 中是否存在损坏的盘。
 
 
 # 排查

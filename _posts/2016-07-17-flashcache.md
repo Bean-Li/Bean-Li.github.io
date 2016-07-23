@@ -251,7 +251,7 @@ enum {
 ![](/assets/LINUX/flashcache_mode.png)
 
 
-在最常用的writeback模式中，还有一个特殊的选项，即writecache：只有write才回使用SSD做的cache，而读直接读取慢速的硬盘。
+在最常用的writeback模式中，还有一个特殊的选项，即writecache：只有write才会使用SSD做的cache，而读直接读取慢速的硬盘。
 这种场景适用于读缺失杂乱无章，读命中的概率非常低的情况。
 
 当我们调用flashcache_create 创建flashcache的时候，加上－w option即可变成writecache
