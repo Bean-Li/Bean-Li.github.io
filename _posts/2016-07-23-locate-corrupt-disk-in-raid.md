@@ -226,11 +226,11 @@ MegaCli -PdLocate -stop -physdrv [E:S]  -aALL
 
 很多RAID卡换盘之后，不需要做什么配置，但是RAID1 也好，RAID5也好，新盘进来之后会rebuild，从拔盘到插入新盘，变化遵循如下轨迹：
 
-Device           |Normal ---->Damage  ---->Rebuild ----->Normal 
+Device           |Normal --->Damage  --->Rebuild --->Normal 
 
-Virtual Drive    |Optimal|Degraded|Degraded|Optimal
+Virtual Drive    |Optimal --->Degraded --->Degraded --->Optimal
 
-Physical Drive   |Online |Failed Unconfigured|Rebuild|Online 
+Physical Drive   |Online --->Failed Unconfigured --->Rebuild  --->Online 
 
 换盘之后，VD处于degrade状态：
 
