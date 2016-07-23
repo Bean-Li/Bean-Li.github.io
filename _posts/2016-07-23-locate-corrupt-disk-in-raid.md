@@ -7,7 +7,7 @@ tag: nfs
 excerpt: RAID中某个盘发生故障，需要替换，如何确定它的位置？
 ---
 
-#前言
+# 前言
 
 请看下面的图：
 
@@ -215,4 +215,10 @@ root@Storage-c2:/opt/MegaRAID/MegaCli#
 ```
 
 这样就定快速定位到损坏的盘的位置了。
+
+更换完盘之后，关闭闪烁的命令如下
+
+```
+MegaCli -PdLocate -stop -physdrv [E:S]  -aALL
+```
 
