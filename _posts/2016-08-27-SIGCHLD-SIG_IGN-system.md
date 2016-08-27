@@ -3,8 +3,8 @@ layout: post
 title: SIGCHLD SIG_IGN和system
 date: 2016-08-27 14:43:40
 categories: linux
-tag: megacli
-excerpt: Megacli 创建和删除RAID
+tag: kernel
+excerpt: SIGCHLD and SIG_IGN
 ---
 
 # 前言
