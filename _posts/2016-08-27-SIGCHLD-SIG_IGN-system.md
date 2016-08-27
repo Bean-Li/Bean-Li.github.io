@@ -2,7 +2,7 @@
 layout: post
 title: SIGCHLD SIG_IGN和system
 date: 2016-08-27 14:43:40
-categories: linux
+categories: kernel
 tag: kernel
 excerpt: SIGCHLD and SIG_IGN
 ---
