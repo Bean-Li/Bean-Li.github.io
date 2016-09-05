@@ -61,7 +61,7 @@ void PG::queue_op(OpRequestRef& op)
 
 上面代码中的osd->op_wq是PG进入的队列。
 
-其中代码中的osd是指想OSDService类型的变量：
+其中代码中的osd是指向OSDService类型的变量：
 
 ```
 
@@ -90,7 +90,6 @@ public:
 在class OSD，有以下成员变量：
 
 ```
-
   ThreadPool osd_tp;
   ShardedThreadPool osd_op_tp;
   ThreadPool recovery_tp;
@@ -98,7 +97,7 @@ public:
   ThreadPool command_tp;
 ```
 
-其中创建对象的时候，
+其中创建对象的时候(OSD::OSD)
 
 
 ```
@@ -123,7 +122,7 @@ public:
 
 生产者将任务放倒工作队列 opshardedwq，线程池中的线程负责从工作队列中取出任务来处理。
 
-创建OSD对象的时候，会创建出来OSDService对象，在创建OSDService的时候，会将OSDService中的op_wq变量指向osd对象的opshardedwq,即本质是一个队列。前面流程图中进入OSDService中的op_wq，即进入OSD的opshardedwq队列。
+创建OSD对象的时候(OSD::OSD函数)，会创建出来OSDService对象，在创建OSDService的时候（OSDService::OSDService），会将OSDService中的op_wq变量指向osd对象的opshardedwq,即本质是一个队列。前面流程图中进入OSDService中的op_wq，即进入OSD的opshardedwq队列。
 
 ```
 OSDService::OSDService(OSD *osd) :
