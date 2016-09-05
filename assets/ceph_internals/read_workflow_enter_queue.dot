@@ -1,0 +1,39 @@
+digraph {
+
+
+  messenger [label = "Messenger"];
+
+
+  subgraph cluster_en_queue{
+
+    osd_fast_dispatch [label = "OSD::ms_fast_dispatch"];
+
+    dispatch_session_waiting [label = "OSD::dispatch_session_waiting"];
+
+    dispatch_op_fast [label = "OSD::dispatch_op_fast"];
+
+    handle_op [ label = "OSD::handle_op"] ;
+    handle_replica_op [ label = "OSD::handle_replica_op"] ;
+
+    enqueue_op [label = "OSD::enqueue_op"];
+
+    queue_op [label = "PG::queue_op"];
+
+    osd_fast_dispatch->dispatch_session_waiting->dispatch_op_fast ;
+    dispatch_op_fast -> handle_op -> enqueue_op ;
+    dispatch_op_fast -> handle_replica_op -> enqueue_op ;
+
+    enqueue_op -> queue_op ;
+
+  }
+
+
+  op_wq [label = "osd.op_wq" , shape = polygon , sides = 4 ,skew =0.7];
+
+
+
+
+  messenger -> osd_fast_dispatch ;
+  queue_op ->op_wq ;
+
+}
