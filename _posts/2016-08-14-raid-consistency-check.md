@@ -209,6 +209,7 @@ root@IPTV:~#
 # 设置模式
 
 设置为ModeConc
+
 ```
 root@IPTV:~# /opt/MegaRAID/MegaCli/MegaCli64 -AdpCcSched -ModeConc -Aall
                                      
