@@ -29,7 +29,7 @@ excerpt: 分析ceph的读流程
 
 关于读操作进入工作队列的流程，我绘制了如下流程图：
 
-![](read_workflow_enter_queue.png)
+![](/asset/ceph_internals/read_workflow_enter_queue.png)
 
 最后进入队列的时候，函数如下：
 
