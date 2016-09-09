@@ -11,7 +11,7 @@ excerpt: 从/proc/scsi/scsi到/dev/sdX的映射
 
 最近帮忙定位了一个问题，即客户环境中有4个800G的SSD，其中2个通过RAID卡，两个不经过RAID卡。这是背景，这4个SSD分别给OSD做Journal和Flashcache，压力应该是一样的，但是监控显示，压力差别很大，有两个SSD的 disk utils明显比另外两个高很多。
 
-![](assets/LINUX/ssd_iostat.jpeg)
+![](/assets/LINUX/ssd_iostat.jpeg)
 
 
 为什么会如此。
