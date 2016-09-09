@@ -13,6 +13,7 @@ excerpt: 从/proc/scsi/scsi到/dev/sdX的映射
 
 ![](assets/LINUX/ssd_iostat.jpeg)
 
+
 为什么会如此。
 
 首先sdb和sdg是其中2个SSD，disk utils明显高于另外两个SSD，那么问题就来了，这两个SSD是否都在RAID卡上，抑或是都不在RAID上，还是一个在RAID，另外一个不在RAID上？
