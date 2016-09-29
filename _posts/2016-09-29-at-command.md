@@ -116,6 +116,24 @@ cd / || {
 python /usr/local/bin/delay_delte_volume.py -G Default -T iqn.2015-01.com:1 -V delete_test_5 
 ```
 
+# 删除任务
+
+at -l 会给出job id，通过atrm命令可以删除某条任务,如下所示：
+
+```
+at -l
+1	Sun Oct  2 10:00:00 2016
+2	Mon Oct  3 10:25:00 2016
+3	Mon Oct  3 10:40:00 2016
+4	Thu Sep 29 22:00:00 2016
+
+atrm 3
+
+at -l
+1	Sun Oct  2 10:00:00 2016
+2	Mon Oct  3 10:25:00 2016
+4	Thu Sep 29 22:00:00 2016
+```
 # 关于重启
 
 如果at command设定的任务，在任务指定时间到来之前，发生了重启，那么重启后，at command 指定的时间到来的时候，命令会不会执行？
@@ -173,4 +191,15 @@ Thu Sep 29 18:15:00 CST 2016
 ```
 Thu Sep 29 18:15:00 CST 2016
 ```
+
+
+# 其他
+
+如果要执行的任务，写在了脚本里，可以采用如下方式：
+
+```
+at 12:32  -f /usr/local/bin/backup-script
+```
+
+即 12:32分，执行 /usr/local/bin/backup-script脚本。
 
