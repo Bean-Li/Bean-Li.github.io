@@ -151,9 +151,9 @@ drwxr-xr-x 5 root   root   4096 Jun 14 16:09 ../
 
 对于Ubuntu而言， /var/spool/cron/atjobs 是存放任务的文件夹。下面有一个文件a0000a01772607， 这个文件是何意？
 
-0  char， 表示queue id
-1～5  16进制，表示job id
-6～13 16 进制，等于 expect_time/60
+* 0  char， 表示queue id
+* 1～5  16进制，表示job id
+* 6～13 16 进制，等于 expect_time/60
 
 我们取出来最后8位：
 
