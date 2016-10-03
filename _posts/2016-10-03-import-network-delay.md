@@ -42,13 +42,18 @@ tc qdisc add dev eth0 root netem delay 8ms
 然后通过ping查看是否生效：
 
 ```
-root@BEAN-1:~# ping 10.10.125.1
+ping 10.10.125.1
 PING 10.10.125.1 (10.10.125.1) 56(84) bytes of data.
 64 bytes from 10.10.125.1: icmp_req=1 ttl=64 time=8.17 ms
 64 bytes from 10.10.125.1: icmp_req=2 ttl=64 time=8.17 ms
 64 bytes from 10.10.125.1: icmp_req=3 ttl=64 time=8.18 ms
 64 bytes from 10.10.125.1: icmp_req=4 ttl=64 time=8.28 ms
 64 bytes from 10.10.125.1: icmp_req=5 ttl=64 time=8.13 ms
+^C
+--- 10.10.125.1 ping statistics ---
+5 packets transmitted, 5 received, 0% packet loss, time 4003ms
+rtt min/avg/max/mdev = 8.139/8.190/8.286/0.050 ms
+
 ```
 
 可以看到网络延迟增加了8ms左右。
