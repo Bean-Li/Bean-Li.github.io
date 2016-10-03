@@ -2,8 +2,8 @@
 layout: post
 title: 给网络注入点延迟
 date: 2016-10-03 11:52:30
-categories: storage
-tag: storage
+categories: linux	
+tag: linux
 excerpt: 人为引入网络延迟的方法
 ---
 
