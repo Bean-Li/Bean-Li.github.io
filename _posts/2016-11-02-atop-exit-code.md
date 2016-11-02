@@ -1,10 +1,10 @@
 ---
 layout: post
-title: atop 获取进程退出码或导致退出的信号值
+title: atop 获取进程退出信息
 date: 2016-11-02 14:43:40
 categories: linux
 tag: linux
-excerpt:
+excerpt: 利用atop，获取进程的退出信息
 ---
 
 # 前言
@@ -52,4 +52,58 @@ The exit code of a terminated process (second position of column 'ST' is E) or t
 
 对于本例， ST＝ NS，表示收到了信号，才导致退出， EXC＝10 表示收到了10号信号。
 
+```
+ kill -l
+ 1) SIGHUP	 2) SIGINT	 3) SIGQUIT	 4) SIGILL	 5) SIGTRAP
+ 6) SIGABRT	 7) SIGBUS	 8) SIGFPE	 9) SIGKILL	10) SIGUSR1
+11) SIGSEGV	12) SIGUSR2	13) SIGPIPE	14) SIGALRM	15) SIGTERM
+16) SIGSTKFLT	17) SIGCHLD	18) SIGCONT	19) SIGSTOP	20) SIGTSTP
+21) SIGTTIN	22) SIGTTOU	23) SIGURG	24) SIGXCPU	25) SIGXFSZ
+26) SIGVTALRM	27) SIGPROF	28) SIGWINCH	29) SIGIO	30) SIGPWR
+31) SIGSYS	34) SIGRTMIN	35) SIGRTMIN+1	36) SIGRTMIN+2	37) SIGRTMIN+3
+38) SIGRTMIN+4	39) SIGRTMIN+5	40) SIGRTMIN+6	41) SIGRTMIN+7	42) SIGRTMIN+8
+43) SIGRTMIN+9	44) SIGRTMIN+10	45) SIGRTMIN+11	46) SIGRTMIN+12	47) SIGRTMIN+13
+48) SIGRTMIN+14	49) SIGRTMIN+15	50) SIGRTMAX-14	51) SIGRTMAX-13	52) SIGRTMAX-12
+53) SIGRTMAX-11	54) SIGRTMAX-10	55) SIGRTMAX-9	56) SIGRTMAX-8	57) SIGRTMAX-7
+58) SIGRTMAX-6	59) SIGRTMAX-5	60) SIGRTMAX-4	61) SIGRTMAX-3	62) SIGRTMAX-2
+63) SIGRTMAX-1	64) SIGRTMAX	
+```
 
+＃ 尾声
+
+谁向ceph-osd进程发送了SIGUSR1信号，systemtap就可以来帮忙了：
+
+编写如下脚本，监控发送到某进程的所有信号：
+
+
+```
+probe begin
+{
+  printf("%-30s%-8s %-16s %-8s %-16s %6s %-16s\n",
+         "TIME","SPID", "SNAME", "RPID", "RNAME", "SIGNUM", "SIGNAME")
+}
+
+probe signal.send 
+{
+  if (pid_name == @1)
+      printf("%-30s%-8d %-16s %-8d %-16s %6d %-16s\n",
+              ctime(gettimeofday_s()),pid(), execname(), sig_pid, pid_name, sig, sig_name)
+}**
+```
+
+
+```
+stap sigmon.stap ceph-osd
+```
+
+测试下，其输出如下：
+
+```
+root@BEAN-1:/home/bean# stap sigmon.stp ceph-osd
+TIME                          SPID     SNAME            RPID     RNAME            SIGNUM SIGNAME         
+Wed Nov  2 14:21:15 2016      19977    sh               19884    ceph-osd             17 SIGCHLD         
+Wed Nov  2 14:21:15 2016      19992    sh               19884    ceph-osd             17 SIGCHLD         
+Wed Nov  2 14:21:20 2016      21218    sh               19884    ceph-osd             17 SIGCHLD         
+Wed Nov  2 14:21:20 2016      21224    sh               19884    ceph-osd             17 SIGCHLD         
+Wed Nov  2 14:21:22 2016      9786     bash             19884    ceph-osd             10 SIGUSR1 
+```
