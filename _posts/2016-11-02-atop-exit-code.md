@@ -17,7 +17,7 @@ Daemon进程凌晨无故退出了，log中没有任何有效信息判断退出�
 
 请看下图：
 
-![](/assets/LINUX/atop_exit.png)
+![](/assets/LINUX/atop_exit.jpg)
 
 上图中第一行 ＃exit 20305 表示在过去10分钟内，有20305个进程退出了。
 
