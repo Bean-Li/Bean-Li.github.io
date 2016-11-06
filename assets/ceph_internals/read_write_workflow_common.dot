@@ -1,0 +1,25 @@
+digraph {
+
+
+  op_wq [label = "osd.op_wq" , shape = polygon , sides = 4 ,skew =0.7];
+
+
+  subgraph cluster_de_queue{
+
+    _process [label = "OSD::ShardedOpWQ::_process"];
+
+    dequeue_op [label = "OSD::dequeue_op"];
+
+    do_request [label = "ReplicatedPG::do_request"];
+
+    do_op [ label = "ReplicatedPG::do_op"] ;
+    execute_ctx [ label = "ReplicatedPG::execute_ctx"] ;
+
+    _process->dequeue_op->do_request->do_op->execute_ctx;
+
+
+  }
+
+  op_wq -> _process ;
+
+}
