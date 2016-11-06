@@ -286,5 +286,496 @@ void ReplicatedBackend::submit_transaction(
 
 写操作有三个贯穿始终的回调，这个回调函数会层层传递，当何时的时机到达的时候，就会执行相关的回调函数。回调在ceph中非常普遍，这个东西就有点像诸葛亮给赵云的三个锦囊，到了合适的时间点，就立刻启动回调函数。
 
-对于写入流程儿
+我们介绍回调函数之前，我们先把Primary OSD 和Replica OSD之间的消息交互捋顺。
+
+在ReplicatedBackend::submit_transaction中，准备好了InProgressOP之后，紧接着就会通过调用issue_op函数，在该函数里，会向Replica OSD发送消息：
+
+```
+
+  issue_op(
+    soid,
+    at_version,
+    tid,
+    reqid,
+    trim_to,
+    trim_rollback_to,
+    t->get_temp_added().empty() ? hobject_t() : *(t->get_temp_added().begin()),
+    t->get_temp_cleared().empty() ?
+      hobject_t() : *(t->get_temp_cleared().begin()),
+    log_entries,
+    hset_history,
+    &op,
+    op_t);
+```
+
+```
+void ReplicatedBackend::issue_op(
+  const hobject_t &soid,
+  const eversion_t &at_version,
+  ceph_tid_t tid,
+  osd_reqid_t reqid,
+  eversion_t pg_trim_to,
+  eversion_t pg_trim_rollback_to,
+  hobject_t new_temp_oid,
+  hobject_t discard_temp_oid,
+  const vector<pg_log_entry_t> &log_entries,
+  boost::optional<pg_hit_set_history_t> &hset_hist,
+  InProgressOp *op,
+  ObjectStore::Transaction &op_t)
+{
+
+  if (parent->get_actingbackfill_shards().size() > 1) {
+    ostringstream ss;
+    set<pg_shard_t> replicas = parent->get_actingbackfill_shards();
+    replicas.erase(parent->whoami_shard());
+    ss << "waiting for subops from " << replicas;
+    if (op->op)
+      op->op->mark_sub_op_sent(ss.str());
+  }
+  for (set<pg_shard_t>::const_iterator i =
+	 parent->get_actingbackfill_shards().begin();
+       i != parent->get_actingbackfill_shards().end();
+       ++i) {
+    if (*i == parent->whoami_shard()) continue;
+    pg_shard_t peer = *i;
+    const pg_info_t &pinfo = parent->get_shard_info().find(peer)->second;
+
+    Message *wr;
+    wr = generate_subop(
+      soid,
+      at_version,
+      tid,
+      reqid,
+      pg_trim_to,
+      pg_trim_rollback_to,
+      new_temp_oid,
+      discard_temp_oid,
+      log_entries,
+      hset_hist,
+      op_t,
+      peer,
+      pinfo);
+
+    get_parent()->send_message_osd_cluster(
+      peer.osd, wr, get_osdmap()->get_epoch());
+  }
+}
+```
+我们看到了，在循环体中，会遍历所有的Replica OSD，向对应的OSD发送消息，而消息体的组装，是在generate_subop函数中，我们进入该函数，看下发送的到底是哪种类型的消息：
+
+```
+Message * ReplicatedBackend::generate_subop(
+  const hobject_t &soid,
+  const eversion_t &at_version,
+  ceph_tid_t tid,
+  osd_reqid_t reqid,
+  eversion_t pg_trim_to,
+  eversion_t pg_trim_rollback_to,
+  hobject_t new_temp_oid,
+  hobject_t discard_temp_oid,
+  const vector<pg_log_entry_t> &log_entries,
+  boost::optional<pg_hit_set_history_t> &hset_hist,
+  ObjectStore::Transaction &op_t,
+  pg_shard_t peer,
+  const pg_info_t &pinfo)
+{
+  int acks_wanted = CEPH_OSD_FLAG_ACK | CEPH_OSD_FLAG_ONDISK;
+  // forward the write/update/whatever
+  MOSDRepOp *wr = new MOSDRepOp(
+    reqid, parent->whoami_shard(),
+    spg_t(get_info().pgid.pgid, peer.shard),
+    soid, acks_wanted,
+    get_osdmap()->get_epoch(),
+    tid, at_version);
+
+  // ship resulting transaction, log entries, and pg_stats
+  if (!parent->should_send_op(peer, soid)) {
+    dout(10) << "issue_repop shipping empty opt to osd." << peer
+	     <<", object " << soid
+	     << " beyond MAX(last_backfill_started "
+	     << ", pinfo.last_backfill "
+	     << pinfo.last_backfill << ")" << dendl;
+    ObjectStore::Transaction t;
+    ::encode(t, wr->get_data());
+  } else {
+    ::encode(op_t, wr->get_data());
+    wr->get_header().data_off = op_t.get_data_alignment();
+  }
+
+  ::encode(log_entries, wr->logbl);
+
+  if (pinfo.is_incomplete())
+    wr->pg_stats = pinfo.stats;  // reflects backfill progress
+  else
+    wr->pg_stats = get_info().stats;
+
+  wr->pg_trim_to = pg_trim_to;
+  wr->pg_trim_rollback_to = pg_trim_rollback_to;
+
+  wr->new_temp_oid = new_temp_oid;
+  wr->discard_temp_oid = discard_temp_oid;
+  wr->updated_hit_set_history = hset_hist;
+  return wr;
+}
+```
+
+注意发送的消息MOSDRepOp,其中Message的type字段为 MSG_OSD_REPOP。
+
+```
+  MOSDRepOp(osd_reqid_t r, pg_shard_t from,
+	    spg_t p, const hobject_t& po, int aw,
+	    epoch_t mape, ceph_tid_t rtid, eversion_t v)
+    : Message(MSG_OSD_REPOP, HEAD_VERSION, COMPAT_VERSION),
+      map_epoch(mape),
+      reqid(r),
+      pgid(p),
+      final_decode_needed(false),
+      from(from),
+      poid(po),
+      acks_wanted(aw),
+      version(v) {
+    set_tid(rtid);
+  }
+```
+
+值得注意的是acks_wanted字段为CEPH_OSD_FLAG_ACK | CEPH_OSD_FLAG_ONDISK，这就意味着消息接收方的Replica OSD需要给发送方的Primary OSD回复2个消息。先不扯这么远，先看Replica OSD 收到消息之后，如何处理。
+
+Primary发送了这种消息之后，Replica OSD会和本文的前两张图一样，进入到队列，然后从osd.op_wq中取出消息进行处理。当走到do_request函数之后，并没有机会执行do_op，或者do_sub_op之类的函数，而是被handle_message函数拦截了：
+
+```
+  if (pgbackend->handle_message(op))
+    return;
+```
+
+```
+bool ReplicatedBackend::handle_message(
+  OpRequestRef op
+  )
+{
+  dout(10) << __func__ << ": " << op << dendl;
+  switch (op->get_req()->get_type()) {
+  ...
+
+  case MSG_OSD_REPOP: {
+    sub_op_modify(op);
+    return true;
+  }
+}
+```
+
+下面我们看下，Replica OSD收到信息之后，在sub_op_modify函数执行了什么操作：
+
+```
+// sub op modify
+void ReplicatedBackend::sub_op_modify(OpRequestRef op)
+{
+  MOSDRepOp *m = static_cast<MOSDRepOp *>(op->get_req());
+  m->finish_decode();
+  int msg_type = m->get_type();
+  assert(MSG_OSD_REPOP == msg_type);
+
+  const hobject_t& soid = m->poid;
+
+  dout(10) << "sub_op_modify trans"
+           << " " << soid
+           << " v " << m->version
+	   << (m->logbl.length() ? " (transaction)" : " (parallel exec")
+	   << " " << m->logbl.length()
+	   << dendl;
+
+  // sanity checks
+  assert(m->map_epoch >= get_info().history.same_interval_since);
+
+  // we better not be missing this.
+  assert(!parent->get_log().get_missing().is_missing(soid));
+
+  int ackerosd = m->get_source().num();
+
+  op->mark_started();
+
+  RepModifyRef rm(std::make_shared<RepModify>());
+  rm->op = op;
+  rm->ackerosd = ackerosd;
+  rm->last_complete = get_info().last_complete;
+  rm->epoch_started = get_osdmap()->get_epoch();
+
+  assert(m->logbl.length());
+  // shipped transaction and log entries
+  vector<pg_log_entry_t> log;
+
+  bufferlist::iterator p = m->get_data().begin();
+  ::decode(rm->opt, p);
+
+  if (m->new_temp_oid != hobject_t()) {
+    dout(20) << __func__ << " start tracking temp " << m->new_temp_oid << dendl;
+    add_temp_obj(m->new_temp_oid);
+  }
+  if (m->discard_temp_oid != hobject_t()) {
+    dout(20) << __func__ << " stop tracking temp " << m->discard_temp_oid << dendl;
+    if (rm->opt.empty()) {
+      dout(10) << __func__ << ": removing object " << m->discard_temp_oid
+	       << " since we won't get the transaction" << dendl;
+      rm->localt.remove(coll, ghobject_t(m->discard_temp_oid));
+    }
+    clear_temp_obj(m->discard_temp_oid);
+  }
+
+  p = m->logbl.begin();
+  ::decode(log, p);
+  rm->opt.set_fadvise_flag(CEPH_OSD_OP_FLAG_FADVISE_DONTNEED);
+
+  bool update_snaps = false;
+  if (!rm->opt.empty()) {
+    // If the opt is non-empty, we infer we are before
+    // last_backfill (according to the primary, not our
+    // not-quite-accurate value), and should update the
+    // collections now.  Otherwise, we do it later on push.
+    update_snaps = true;
+  }
+  parent->update_stats(m->pg_stats);
+  parent->log_operation(
+    log,
+    m->updated_hit_set_history,
+    m->pg_trim_to,
+    m->pg_trim_rollback_to,
+    update_snaps,
+    rm->localt);
+
+  rm->opt.register_on_commit(
+    parent->bless_context(
+      new C_OSD_RepModifyCommit(this, rm)));
+  rm->localt.register_on_applied(
+    parent->bless_context(
+      new C_OSD_RepModifyApply(this, rm)));
+  vector<ObjectStore::Transaction> tls;
+  tls.reserve(2);
+  tls.push_back(std::move(rm->localt));
+  tls.push_back(std::move(rm->opt));
+  parent->queue_transactions(tls, op);
+  // op is cleaned up by oncommit/onapply when both are executed
+}
+```
+
+这段代码非常有意思，如果有心的同志，可以注意到Primary OSD 和这一段代码对应的部分：即
+
+```
+void ReplicatedBackend::submit_transaction(
+  const hobject_t &soid,
+  const eversion_t &at_version,
+  PGTransactionUPtr &&_t,
+  const eversion_t &trim_to,
+  const eversion_t &trim_rollback_to,
+  const vector<pg_log_entry_t> &log_entries,
+  boost::optional<pg_hit_set_history_t> &hset_history,
+  Context *on_local_applied_sync,
+  Context *on_all_acked,
+  Context *on_all_commit,
+  ceph_tid_t tid,
+  osd_reqid_t reqid,
+  OpRequestRef orig_op)
+{
+
+  ...
+  
+  if (!(t->get_temp_added().empty())) {
+    add_temp_objs(t->get_temp_added());
+  }
+  clear_temp_objs(t->get_temp_cleared());
+
+  parent->log_operation(
+    log_entries,
+    hset_history,
+    trim_to,
+    trim_rollback_to,
+    true,
+    op_t);
+  
+  op_t.register_on_applied_sync(on_local_applied_sync);
+  op_t.register_on_applied(
+    parent->bless_context(
+      new C_OSD_OnOpApplied(this, &op)));
+  op_t.register_on_commit(
+    parent->bless_context(
+      new C_OSD_OnOpCommit(this, &op)));
+
+  vector<ObjectStore::Transaction> tls;
+  tls.push_back(std::move(op_t));
+
+  parent->queue_transactions(tls, op.op);
+}
+```
+
+代码非常的像对不对，原因是很简单的，即Primary OSD 和Replica OSD 本身要执行的操作，原本是一样的，只不过存在Primary OSD肩负着和Client通信的责任，而Replica 并没有这种责任，但是Replica需要及时向Primary OSD汇报进度。
+
+如何上报进度？
+
+注意Primary执行的ReplicatedBackend::submit_transaction函数和Replica OSD执行的ReplicatedBackend::sub_op_modify 函数都有一段很有意思的回调注册部分：
+
+```
+
+Primary OSD在submit_transaction函数中：
+－－－－－－－－－－－－－－－－－－－－－－－
+  op_t.register_on_applied(
+    parent->bless_context(
+      new C_OSD_OnOpApplied(this, &op)));
+  op_t.register_on_commit(
+    parent->bless_context(
+      new C_OSD_OnOpCommit(this, &op)));
+      
+Replica OSD 在 sub_op_modify函数中：
+－－－－－－－－－－－－－－－－－－－－－－－－－
+  rm->opt.register_on_commit(
+    parent->bless_context(
+      new C_OSD_RepModifyCommit(this, rm)));
+  rm->localt.register_on_applied(
+    parent->bless_context(
+      new C_OSD_RepModifyApply(this, rm)));
+
+```
+
+ceph的代码中，存在大量的回调函数，回调机制是一个非常重要的机制。事先注册，待到何时的时间点，触发执行回调函数，就如同诸葛亮给赵云的三个锦囊。对于写入来讲，每个OSD无论是Primary还是Replica，都有两个关键的milestone
+
+* commit 
+* apply
+
+对于第一个milestone表示已经写入到了osd的journal，此时表示已经完成commit，第二个milestone曾为applied，表示已经写入OSD的data partition。完成任何一个milestone，都要执行相关的回调。
+
+我们本文不会介绍写入Journal和写入disk 部分的代码流程，因为这是下一篇博客的使命，我们只介绍，当Replica OSD完成了每一个milestone，会做哪些事情：
+
+```
+
+struct ReplicatedBackend::C_OSD_RepModifyApply : public Context {
+  ReplicatedBackend *pg;
+  RepModifyRef rm;
+  C_OSD_RepModifyApply(ReplicatedBackend *pg, RepModifyRef r)
+    : pg(pg), rm(r) {}
+  void finish(int r) {
+    pg->sub_op_modify_applied(rm);
+  }
+};
+
+struct ReplicatedBackend::C_OSD_RepModifyCommit : public Context {
+  ReplicatedBackend *pg;
+  RepModifyRef rm;
+  C_OSD_RepModifyCommit(ReplicatedBackend *pg, RepModifyRef r)
+    : pg(pg), rm(r) {}
+  void finish(int r) {
+    pg->sub_op_modify_commit(rm);
+  }
+};
+
+
+```
+
+这两个回调，其实很明显，就是给Primary OSD发送消息,通知Primary OSD 对应的milestone已经完成。
+
+```
+void ReplicatedBackend::sub_op_modify_commit(RepModifyRef rm)
+{
+  rm->op->mark_commit_sent();
+  rm->committed = true;
+
+  // send commit.
+  dout(10) << "sub_op_modify_commit on op " << *rm->op->get_req()
+	   << ", sending commit to osd." << rm->ackerosd
+	   << dendl;
+
+  assert(get_osdmap()->is_up(rm->ackerosd));
+  get_parent()->update_last_complete_ondisk(rm->last_complete);
+
+  Message *m = rm->op->get_req();
+  Message *commit = NULL;
+  if (m->get_type() == MSG_OSD_SUBOP) {
+     ...
+  } else if (m->get_type() == MSG_OSD_REPOP) {
+  
+    //给Primary OSD回消息
+    MOSDRepOpReply *reply = new MOSDRepOpReply(
+      static_cast<MOSDRepOp*>(m),
+      get_parent()->whoami_shard(),
+      0, get_osdmap()->get_epoch(), CEPH_OSD_FLAG_ONDISK);
+    reply->set_last_complete_ondisk(rm->last_complete);
+    commit = reply;
+  }
+  else {
+    assert(0);
+  }
+
+  commit->set_priority(CEPH_MSG_PRIO_HIGH); // this better match ack priority!
+  get_parent()->send_message_osd_cluster(
+    rm->ackerosd, commit, get_osdmap()->get_epoch());
+
+  log_subop_stats(get_parent()->get_logger(), rm->op, l_osd_sop_w);
+}
+
+
+void ReplicatedBackend::sub_op_modify_applied(RepModifyRef rm)
+{
+  rm->op->mark_event("sub_op_applied");
+  rm->applied = true;
+
+  dout(10) << "sub_op_modify_applied on " << rm << " op "
+	   << *rm->op->get_req() << dendl;
+  Message *m = rm->op->get_req();
+
+  Message *ack = NULL;
+  eversion_t version;
+
+  if (m->get_type() == MSG_OSD_SUBOP) {
+    ...
+  } else if (m->get_type() == MSG_OSD_REPOP) {
+    MOSDRepOp *req = static_cast<MOSDRepOp*>(m);
+    version = req->version;
+    if (!rm->committed)
+      ack = new MOSDRepOpReply(
+	            static_cast<MOSDRepOp*>(m), parent->whoami_shard(),
+	            0, get_osdmap()->get_epoch(), CEPH_OSD_FLAG_ACK);
+  } else {
+    assert(0);
+  }
+
+  // send ack to acker only if we haven't sent a commit already
+  if (ack) {
+    ack->set_priority(CEPH_MSG_PRIO_HIGH); // this better match commit priority!
+    get_parent()->send_message_osd_cluster(
+      rm->ackerosd, ack, get_osdmap()->get_epoch());
+  }
+
+  parent->op_applied(version);
+}
+```
+
+Replica OSD在每个MileStone给Primary OSD发送的消息类型都是一样的,都是MSG_OSD_REPOPREPLY
+
+```
+  MOSDRepOpReply(
+    MOSDRepOp *req, pg_shard_t from, int result_, epoch_t e, int at) :
+    Message(MSG_OSD_REPOPREPLY, HEAD_VERSION, COMPAT_VERSION),
+    map_epoch(e),
+    reqid(req->reqid),
+    from(from),
+    pgid(req->pgid.pgid, req->from.shard),
+    ack_type(at),
+    result(result_),
+    final_decode_needed(false) {
+    set_tid(req->get_tid());
+  }
+```
+区别在于ack_type不同，一种是CEPH_OSD_FLAG_ONDISK，另一种是CEPH_OSD_FLAG_ACK。
+
+Replica OSD 向Primary OSD发送了 MSG_OSD_REPOPREPLY 消息，处理流程和本文的前两张图一样，不同之处是do_request函数中的hanle_message会处理这种类型的消息：
+
+```
+
+bool ReplicatedBackend::handle_message(
+  OpRequestRef op
+  )
+{
+  case MSG_OSD_REPOPREPLY: {
+    sub_op_modify_reply(op);
+    return true;
+  }
+  
+}
+```
 
