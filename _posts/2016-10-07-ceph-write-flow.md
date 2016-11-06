@@ -169,7 +169,7 @@ case CEPH_OSD_OP_WRITE:
 
 这一部分是很容易理解的，就是说把操作码设置为OP_WRITE，记录好要写入的object和coll，将offset 和length设置正确，同时将要写入的data纪录下来，后续ObjectStore部分（更具体地说是filestore），就可以根据上述信息，完成写入底层对象存储的动作。
 
-上述内容仅仅是一个部分，之前也提过，出了data，还有PGLog，这部分内容是为了纪录各个副本之间的写入情况，预防异常发生。prepare_transaction函数的最后，会调用finish\_ctx函数，finish\_ctx函数里就会调用ctx->log.push\_back就会构造pg\_log\_entry\_t插入到vector log里。
+上述内容仅仅是一个部分，之前也提过，除了data，还有PGLog，这部分内容是为了纪录各个副本之间的写入情况，预防异常发生。prepare_transaction函数的最后，会调用finish\_ctx函数，finish\_ctx函数里就会调用ctx->log.push\_back就会构造pg\_log\_entry\_t插入到vector log里。
 
 PGLog后续会有专门文章介绍，我们按下不表，包括ReplicatedBackend::submit_transaction里调用parent->log_operation将PGLog序列化到transaction里，这些内容我们都不会在本文介绍。
 
@@ -188,4 +188,103 @@ PGLog后续会有专门文章介绍，我们按下不表，包括ReplicatedBacke
 
 我们从上图中也可以看出每一个Replica OSD给Primary OSD发送了2个消息，其中第二个消息，对应的是第二阶段任务的完成。当Journal中的数据向OSD的data partition写入成功后，第二阶段任务就算完成了，Replica OSD就会给Primary OSD发送第二个消息。当Primary OSD搜集齐了所有OSD都完成了的消息之后，就会确认整体第二阶段的任务完成，就会给Client消息，通知数据可读。
 
-很粗略，基本是简单地介绍了消息流动图，但是，我们是研究ceph internal的，这么粗略是不能原谅的。很多细节都隐藏在这些笼统的描述中。比如，完成第一阶段和第二阶段过程之后，Replica OSD分别给Primary OSD发送了什么消息，而Primary OSD又是如何处理这些消息的；再比如Primary OSD 如何判断 所有的OSD是否都完成了第一阶段的任务？
+很粗略，基本是简单地介绍了消息流动图，但是，我们是研究ceph internal的，这么粗略是不能原谅的。很多细节都隐藏在这些笼统的描述中。比如，Primary在什么时机将写入的消息发送给Replica OSD，消息类型是什么；又比如，完成第一阶段和第二阶段过程之后，Replica OSD分别给Primary OSD发送了什么消息，而Primary OSD又是如何处理这些消息的；再比如Primary OSD 如何判断 所有的OSD是否都完成了第一阶段的任务？
+
+
+注意，上面笼统的描述中，介绍了当Primary OSD发现所有的OSD都完成了第一阶段任务，则发送消息给client，告知client写入完成，第二阶段的任务亦然，这表明，Primary OSD必须有数据结构能够纪录下各个OSD的完成情况，这个数据结构是什么呢？
+
+这个数据结构就是in\_progress\_ops !
+
+在issue_repop函数中，会调用
+
+```
+  Context *on_all_commit = new C_OSD_RepopCommit(this, repop);
+  Context *on_all_applied = new C_OSD_RepopApplied(this, repop);
+  Context *onapplied_sync = new C_OSD_OndiskWriteUnlock(
+    ctx->obc,
+    ctx->clone_obc,
+    unlock_snapset_obc ? ctx->snapset_obc : ObjectContextRef());
+  pgbackend->submit_transaction(
+    soid,
+    ctx->at_version,
+    std::move(ctx->op_t),
+    pg_trim_to,
+    min_last_complete_ondisk,
+    ctx->log,
+    ctx->updated_hset_history,
+    onapplied_sync,
+    on_all_applied,
+    on_all_commit,
+    repop->rep_tid,
+    ctx->reqid,
+    ctx->op);
+```
+其中submit_transaction函数中，会将与该PG操作对应的OSD都纪录在册：
+
+```
+void ReplicatedBackend::submit_transaction(
+  const hobject_t &soid,
+  const eversion_t &at_version,
+  PGTransactionUPtr &&_t,
+  const eversion_t &trim_to,
+  const eversion_t &trim_rollback_to,
+  const vector<pg_log_entry_t> &log_entries,
+  boost::optional<pg_hit_set_history_t> &hset_history,
+  Context *on_local_applied_sync,
+  Context *on_all_acked,
+  Context *on_all_commit,
+  ceph_tid_t tid,
+  osd_reqid_t reqid,
+  OpRequestRef orig_op)
+｛
+
+  ...
+  InProgressOp &op = in_progress_ops.insert(
+    make_pair(
+      tid,
+      InProgressOp(
+	     tid, on_all_commit, on_all_acked,
+	     orig_op, at_version)
+      )
+    ).first->second;
+
+  op.waiting_for_applied.insert(
+    parent->get_actingbackfill_shards().begin(),
+    parent->get_actingbackfill_shards().end());
+  op.waiting_for_commit.insert(
+    parent->get_actingbackfill_shards().begin(),
+    parent->get_actingbackfill_shards().end());
+    
+    ...
+}
+```
+注意，InProgressOP维护有两个集合，waiting_for_commit这个集合存放的是尚未完成第一阶段任务（即写入Journal）的所有OSD，waiting_for_applied这个集合存放的是尚未完成第二阶段任务（即从Journal写入OSD的data partition或Disk）的所有OSD。
+
+```
+  struct InProgressOp {
+    ceph_tid_t tid;
+    set<pg_shard_t> waiting_for_commit;  /*尚未完成第一阶段任务的OSD的集合*/
+    set<pg_shard_t> waiting_for_applied; /*尚未完成第二阶段任务的OSD的集合*/
+    Context *on_commit;
+    Context *on_applied;
+    OpRequestRef op;
+    eversion_t v;
+    InProgressOp(
+      ceph_tid_t tid, Context *on_commit, Context *on_applied,
+      OpRequestRef op, eversion_t v)
+      : tid(tid), on_commit(on_commit), on_applied(on_applied),
+	op(op), v(v) {}
+    bool done() const {
+      return waiting_for_commit.empty() &&
+	waiting_for_applied.empty();
+    }
+  };
+```
+
+很明显，当Replica OSD或者Primary OSD完成第一阶段或者第二阶段任务的时候，都必然会通知到Primary OSD，更新这两个集合中的元素：
+如何更新？ 这就牵扯到了很重要的回调机制。
+
+写操作有三个贯穿始终的回调，这个回调函数会层层传递，当何时的时机到达的时候，就会执行相关的回调函数。回调在ceph中非常普遍，这个东西就有点像诸葛亮给赵云的三个锦囊，到了合适的时间点，就立刻启动回调函数。
+
+对于写入流程儿
+
