@@ -27,7 +27,7 @@ excerpt: 介绍ceph 写流程
 
 写流程之所以比读流程复杂，原因在于读流程只需要去Primary OSD读取响应的Object即可，而写流程牵扯到多个OSD。下图来自Ceph的官方文档：
 
-![](/assets/ceph_internals/write_3_replica.png =)
+![](/assets/ceph_internals/write_3_replica.png=300*300)
 
 写流程之所以比读流程复杂源于多个方面，
 
