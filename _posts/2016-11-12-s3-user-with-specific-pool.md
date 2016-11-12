@@ -204,6 +204,44 @@ radosgw-admin metadata get user:bean_lee > /tmp/bean_lee
               "secret_key": "111111"}],
       "caps": [],
       "op_mask": "read, write, delete",
+      "default_placement": "",
+      "placement_tags": [], 
+      "bucket_quota": { "enabled": false,
+          "max_size_kb": -1,
+          "max_objects": -1},
+      "user_quota": { "enabled": false,
+          "max_size_kb": -1,
+          "max_objects": -1},
+      "temp_url_keys": []}}
+```
+
+将内容修改成如下：其中default_placement一行和placement_tags 一行被修改，修改成和region placement_targets 中新增的name和tag
+
+```
+{ "key": "user:bean_lee",
+  "ver": { "tag": "_h1Z0FgVKaKIRvq-4ifElmA0",
+      "ver": 3},
+  "mtime": 1478767056,
+  "data": { "user_id": "bean_lee",
+      "display_name": "bean_lee",
+      "email": "bean_lee@123.com",
+      "suspended": 0,
+      "max_buckets": 1000,
+      "auid": 0,
+      "subusers": [
+            { "id": "bean_lee:bean_lee",
+              "permissions": "full-control"}],
+      "keys": [
+            { "user": "bean_lee",
+              "access_key": "5EJ6XVLI6V3W8TL9R97D",
+              "secret_key": "2ppUXqDYI52AMZg+h4Oo+VTPgXbiRCFtgZgifGLI"}],
+      "swift_keys": [
+            { "user": "bean_lee",
+              "secret_key": "111111"},
+            { "user": "bean_lee:bean_lee",
+              "secret_key": "111111"}],
+      "caps": [],
+      "op_mask": "read, write, delete",
       "default_placement": "bean_lee",
       "placement_tags": ["pool-bean"], 
       "bucket_quota": { "enabled": false,
@@ -214,6 +252,7 @@ radosgw-admin metadata get user:bean_lee > /tmp/bean_lee
           "max_objects": -1},
       "temp_url_keys": []}}
 ```
+
 
 其中default_placement一行和placement_tags 一行被修改，修改成和region placement_targets 中新增的name和tag
 
