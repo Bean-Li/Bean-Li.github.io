@@ -1,9 +1,9 @@
 ---
 layout: post
 title: 给不同的S3用户指定不同的pool
-date: 2016-08-21 14:43:40
+date: 2016-11-12 14:43:40
 categories: ceph
-tag: 
+tag: ceph
 excerpt: 指定S3账户的默认pool，即S3用户的数据写入指定的pool
 ---
 
