@@ -14,8 +14,8 @@ leveldb在内存存储为Memtable，但是很明显内存不是持久化设备�
 
 从上面的讨论可以看出，写入动作，可以分解为2步
 
-1 追加写入log文件
-2 写入内存
+* 追加写入log文件
+* 写入内存
 
 因为追加写入log文件属于连续写入，而写入内存的速度又比较快，因此，写入会比较高效。
 
@@ -58,10 +58,10 @@ enum RecordType {
 };
 static const int kMaxRecordType = kLastType;
 
-static const int kBlockSize = 32768;
+static const int kBlockSize = 32768;  /*每个block为32KB*/
 
 // Header is checksum (4 bytes), length (2 bytes), type (1 byte).
-static const int kHeaderSize = 4 + 2 + 1;
+static const int kHeaderSize = 4 + 2 + 1;  /*header由三部分组成，checksum length和type*/
 
 }  // namespace log
 }  // namespace leveldb
@@ -70,6 +70,13 @@ static const int kHeaderSize = 4 + 2 + 1;
 ```
 
 ![](/assets/LevelDB/leveldb-log1.png)
+
+```
+    checksum: uint32           // type及data[]对应的crc32值
+    length:   uint16           // 数据长度
+    type:     uint8            // FULL/FIRST/MIDDLE/LAST中的一种
+    data:     uint8[length]    // 实际存储的数据
+```
 
 类型存在4种：
 
