@@ -78,7 +78,7 @@ static const int kHeaderSize = 4 + 2 + 1;
 * kMiddleType ： 记录的内容的起始位置不在本block，结束未知也不在本block
 * kLastType   ： 记录的内容起始位置不在本block，但 结束位置在本block
 
-![](/assets/LevelDB/leveldb-log1.png)
+![](/assets/LevelDB/leveldb-log2.png)
 
 有了上述layout的信息，普通水平的程序员也可以完成如何add一笔记录到Log文件的功能：
 
