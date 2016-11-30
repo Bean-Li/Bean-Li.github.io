@@ -761,9 +761,9 @@ Replica OSD在每个MileStone给Primary OSD发送的消息类型都是一样的,
     set_tid(req->get_tid());
   }
 ```
-区别在于ack_type不同，一种是CEPH_OSD_FLAG_ONDISK，另一种是CEPH_OSD_FLAG_ACK。
+区别在于ack_type不同，一种是CEPH\_OSD\_FLAG\_ONDISK，另一种是CEPH\_OSD\_FLAG\_ACK。
 
-Replica OSD 向Primary OSD发送了 MSG_OSD_REPOPREPLY 消息，处理流程和本文的前两张图一样，不同之处是do_request函数中的hanle_message会处理这种类型的消息：
+Replica OSD 向Primary OSD发送了 MSG\_OSD\_REPOPREPLY 消息，处理流程和本文的前两张图一样，不同之处是do\_request函数中的hanle\_message会处理这种类型的消息：
 
 ```
 
@@ -779,3 +779,76 @@ bool ReplicatedBackend::handle_message(
 }
 ```
 
+```
+void ReplicatedBackend::sub_op_modify_reply(OpRequestRef op)
+{
+  MOSDRepOpReply *r = static_cast<MOSDRepOpReply *>(op->get_req());
+  r->finish_decode();
+  assert(r->get_header().type == MSG_OSD_REPOPREPLY);
+
+  op->mark_started();
+
+  // must be replication.
+  ceph_tid_t rep_tid = r->get_tid();
+  pg_shard_t from = r->from;
+
+  if (in_progress_ops.count(rep_tid)) {
+    map<ceph_tid_t, InProgressOp>::iterator iter =
+      in_progress_ops.find(rep_tid);
+    InProgressOp &ip_op = iter->second;
+    MOSDOp *m = NULL;
+    if (ip_op.op)
+      m = static_cast<MOSDOp *>(ip_op.op->get_req());
+
+    if (m)
+      dout(7) << __func__ << ": tid " << ip_op.tid << " op " //<< *m
+	      << " ack_type " << (int)r->ack_type
+	      << " from " << from
+	      << dendl;
+    else
+      dout(7) << __func__ << ": tid " << ip_op.tid << " (no op) "
+	      << " ack_type " << (int)r->ack_type
+	      << " from " << from
+	      << dendl;
+
+    // oh, good.
+
+    if (r->ack_type & CEPH_OSD_FLAG_ONDISK) {
+      assert(ip_op.waiting_for_commit.count(from));
+      ip_op.waiting_for_commit.erase(from);
+      if (ip_op.op) {
+        ostringstream ss;
+        ss << "sub_op_commit_rec from " << from;
+        ip_op.op->mark_event(ss.str());
+      }
+    } else {
+      assert(ip_op.waiting_for_applied.count(from));
+      if (ip_op.op) {
+        ostringstream ss;
+        ss << "sub_op_applied_rec from " << from;
+        ip_op.op->mark_event(ss.str());
+      }
+    }
+    ip_op.waiting_for_applied.erase(from);
+
+    parent->update_peer_last_complete_ondisk(
+      from,
+      r->get_last_complete_ondisk());
+
+    if (ip_op.waiting_for_applied.empty() &&
+        ip_op.on_applied) {
+      ip_op.on_applied->complete(0);
+      ip_op.on_applied = 0;
+    }
+    if (ip_op.waiting_for_commit.empty() &&
+        ip_op.on_commit) {
+      ip_op.on_commit->complete(0);
+      ip_op.on_commit= 0;
+    }
+    if (ip_op.done()) {
+      assert(!ip_op.on_commit && !ip_op.on_applied);
+      in_progress_ops.erase(iter);
+    }
+  }
+}
+```
