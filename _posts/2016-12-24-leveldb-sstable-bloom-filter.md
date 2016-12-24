@@ -46,7 +46,7 @@ Burton Howard Bloom 在1970年设计的数据结构，用来判断某个key是�
 如果位图中的bit数位为m，集合中的元素为n，hash函数的个数为k，那么虚警概率
 
 
-![](/assets/LevelDB/bloom_filter_false_positive_probability.png)
+![](/assets/LevelDB/bloom_filter_false_positive_p.png)
 
 如果m 和n 是确定的，那么最优的k为：
 
