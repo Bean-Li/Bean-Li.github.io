@@ -1,6 +1,6 @@
 ---
 layout: post
-title: leveldb中的SSTable (3)
+title: leveldb中的SSTable (3): bloom filter 和 meta block
 date: 2016-12-24 10:29
 categories: linux
 tag: leveldb
