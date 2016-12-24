@@ -73,6 +73,15 @@ Footer固定48B，如下图所示：
 
 ![](/assets/LevelDB/footer-format.png)
 
+```
+
+    metaindex_handle: char[p];      // Block handle for metaindex
+    index_handle:     char[q];      // Block handle for index
+    padding:          char[40-p-q]; // zeroed bytes to make fixed length
+                                    // (40==2*BlockHandle::kMaxEncodedLength)
+    magic:            fixed64;      // == 0xdb4775248b80fb57 (little-endian)
+```
+
 其中最后的magic number是固定的长度的8字节：
 
 ```
@@ -88,6 +97,8 @@ private:
   uint64_t size_;
 };
 ```
+
+一个uint64整数经过varint64编码后最大占用10个字节，一个BlockHandle包含两个uint64类型(size和offset)，则一个BlockHandle最多占用20个字节，即BLockHandle::kMaxEncodedLength=20。metaindex_handle和index_handle最大占用字节为40个字节。magic number占用8个字节，是个固定数值，用于读取时校验是否跟填充时相同，不相同的话就表示此文件不是一个SSTable文件(bad magic number)。padding用于补齐为40字节。
 
 sstable文件中footer中可以解码出在文件的结尾处距离footer最近的index block的BlockHandle，以及metaindex block的BlockHandle，从而确定这两个组成部分在文件中的位置。
 
