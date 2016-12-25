@@ -1,6 +1,6 @@
 ---
 layout: post
-title: leveldb中的SSTable (3): bloom filter 和 meta block
+title: leveldb中的SSTable (3)
 date: 2016-12-24 10:29
 categories: linux
 tag: leveldb
@@ -451,9 +451,37 @@ void FilterBlockBuilder::GenerateFilter() {
 
 势必造成如下图的结果：
 
+![](/assets/LevelDB/filter_block_point.png)
+
+如果（0～7K-1)是第一个data block的范围，（7K～14K－1）是第二个 data block的范围，（0～6K－1）没啥问题，可是（6K～7K－1）属于第一个data block，但是存放bloom filter的时候，指向的是第二个 bloom filter，将来可能会带来问题。
+
+实际上不会，因为 meta block是data block的辅助，应用层绝不会问 data block offset为6K的block位图在何方。从查找的途径来看，先根据key通过第二篇的index block，找到对应的data block，而data block的offset，只会是0或者7K，绝不会是6K。
+
+当传入data block的offset是7K的时候，根据上表，就会返回第二个bloom filter，而第二个bloom filter会负责整个第二个data block的全部key，即data block的（7K～14K－1）范围内的所有key，都可以利用第二个bloom filter找到。
 
 
-多存了数据并无关系，表面看冗余，其则不然，说到底，bloom filter的位图是为data block服务的，必需将data block的offset和对应的bloom filter 联系起来。（此处细节后面展开）
+使用这种方法，当用户输入data block offset的时候，查找对应data block 的bloom filter bitmap非常方便：
+
+```
+bool FilterBlockReader::KeyMayMatch(uint64_t block_offset, const Slice& key) {
+  uint64_t index = block_offset >> base_lg_;
+  if (index < num_) {
+    uint32_t start = DecodeFixed32(offset_ + index*4);
+    uint32_t limit = DecodeFixed32(offset_ + index*4 + 4);
+    if (start <= limit && limit <= static_cast<size_t>(offset_ - data_)) {
+      Slice filter = Slice(data_ + start, limit - start);
+      return policy_->KeyMayMatch(key, filter);
+    } else if (start == limit) {
+      // Empty filters do not match any keys
+      return false;
+    }
+  }
+  return true;  // Errors are treated as potential matches
+}
+
+```
+按照上面的分析，如果block_offset为6KB的时候，就会找不到对应位图，因为 start和limit指向的都是bitmap 1,函数中的filter最终为空，但是没关系，绝不会传进来6K，因为6K不是两个data block的边界。
+
 
 
 # meta data的在SSTable File中的布局
