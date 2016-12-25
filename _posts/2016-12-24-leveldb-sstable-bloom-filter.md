@@ -7,7 +7,7 @@ tag: leveldb
 excerpt: 本文介绍leveldb中的重要数据结构SSTable
 ---
 
-#前言
+# 前言
 sstable 文件的foot， data block 和index block都已经介绍过了，看起来好像已经齐备了，根据footer 能够找到index block，而index记录了data block的索引信息，可以根据index block中的索引，快速定位到某个key（可能）位于which data block。
 
 那么meta block和metaindex block到底是干啥的呢，为什么要有它呢？meta block的左右在于快速的确定，是否存在某个key，如果不存在，就没必要去遍历data block查找该key了。
@@ -349,7 +349,7 @@ class FilterBlockBuilder {
 
 我们终于提到了多轮了，既然有轮次的概念，那么问题就来了，啥时候发起一轮keys位图的计算？
 
-# 时机
+接下来我们看为一轮多个时机
 
 ```
 
@@ -456,7 +456,7 @@ void FilterBlockBuilder::GenerateFilter() {
 多存了数据并无关系，表面看冗余，其则不然，说到底，bloom filter的位图是为data block服务的，必需将data block的offset和对应的bloom filter 联系起来。（此处细节后面展开）
 
 
-# meta data的落盘
+# meta data的在SSTable File中的布局
 
 TableBuilder::Finish函数中会将Filter Block落盘：
 
