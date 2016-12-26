@@ -1,7 +1,7 @@
 ---
 layout: post
 title: leveldb中的memtable
-date: 2016-12-24 10:29
+date: 2016-12-26 10:29
 categories: linux
 tag: leveldb
 excerpt: 本文介绍leveldb中的重要数据结构memtable
@@ -141,6 +141,8 @@ OK，跳表的原理，就不赘述，我们继续看leveldb的MemTable。
 
 ![](/assets/LevelDB/leveldb-keys.png)
 
+（本图来自：  [Leveldb源码笔记之读操作](http://blog.1feng.me/2016/09/10/leveldb-read/)）
+
 ## Add 接口
 
 我们首先看下Add操作：
@@ -180,12 +182,19 @@ void MemTable::Add(SequenceNumber s, ValueType type,
 
 ![](/assets/LevelDB/leveldb_memtable_entry.png)
 
+（本图来自：  [MemTable与SkipList-leveldb源码剖析(3)](http://www.pandademo.com/2016/03/memtable-and-skiplist-leveldb-source-dissect-3/)）
+
 由上述代码可知SequenceNumber只使用了56bit，小端低位8bit为ValueType；亦可以看到Internal_Key和Val_Slice的大小均使用了varint变长压缩，即使用单字节最高位来区分是否还有后续字节，用前7位存储实际比特数据，对于小整数有比较好的压缩效果，这种对小整数的字节对齐压缩方案在leveldb实现中有较多体现。
 
 
 ## Get接口
 我们来看内部重要的LookupKey的定义,这个LookupKey就是我们说的memtable key：
-![](/assets/LevelDB/leveldb-keys.png)
+
+![](/assets/LevelDB/leveldb-key.png)
+
+
+
+（本图来自：  [MemTable与SkipList-leveldb源码剖析(3)](http://www.pandademo.com/2016/03/memtable-and-skiplist-leveldb-source-dissect-3/)）
 
 通过上图，不难理解下面的意思：
 
