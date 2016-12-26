@@ -190,7 +190,7 @@ void MemTable::Add(SequenceNumber s, ValueType type,
 ## Get接口
 我们来看内部重要的LookupKey的定义,这个LookupKey就是我们说的memtable key：
 
-![](/assets/LevelDB/leveldb-key.png)
+![](/assets/LevelDB/leveldb_key.png)
 
 
 
