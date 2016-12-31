@@ -40,6 +40,7 @@ Compaction操作入口实际由DBImpl::MaybeScheduleCompaction控制,追踪该�
 我们首先介绍Minor Compaction的触发时机：
 
 以下几个条件同时满足时，才会触发Minor Compaction:
+
 1. 在调用put/delete API时，检查DBImpl::MakeRoomForWrite, 发现memtable的使用空间超过4M了；
 2. 当前的immtable已经被dump出去成sstable. 也就是immtable=NULL
 在上面的两个条件同时满足的情况下，会阻塞写线程，把memtable移到immtable。然后新起一个memtable，让写操作写到这个memtable里。最后将imm放到后台线程去做compaction.
