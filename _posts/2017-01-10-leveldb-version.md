@@ -271,7 +271,8 @@ Version(N) + VersionEdit(N) = Version(N+1)
 
 调用LogAndApply的时机有4个，其中第一个是打开DB的时候，其余3个都与Compaction有关系。
 
-* Open DB 的时候，有些记录在上一次操作中，可能有一些记录只在log中，并未写入sstable，因此需要replay，有点类似journal文件系统断电之后的replay操作。
+*  Open DB 的时候，有些记录在上一次操作中，可能有一些记录只在log中，并未写入sstable，因此需要replay，
+有点类似journal文件系统断电之后的replay操作。
 
 * Immutable MemTable dump成SStable之后，调用LogAndApply
 * 如果是非manual，同时仅仅是sstable文件简单地在不同level之间移动，并不牵扯两个不同level的sstable之间归并排序，就直接调用LogAndApply
