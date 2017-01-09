@@ -1,7 +1,7 @@
 ---
 layout: post
 title: leveldb之Version VersionEdit and VersionSet
-date: 2016-12-24 10:29
+date: 2017-01-10 00:13
 categories: linux
 tag: leveldb
 excerpt: 本文介绍leveldb中的Version相关的信息
@@ -632,4 +632,6 @@ Compaction* VersionSet::PickCompaction() {
 
 
 ## LogAndApply的MANIFEST部分
+
+注意，VerisonEdit会写入到磁盘的MANIFEST部分，这一部分不在本文讲解，后面会有单独的MANIFEST的详细介绍。
 
