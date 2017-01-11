@@ -2,7 +2,7 @@
 layout: post
 title: leveldb之Compaction (1)
 date: 2016-12-31 10:29
-categories: linux
+categories: leveldb
 tag: leveldb
 excerpt: 本文介绍leveldb中的Compaction
 ---

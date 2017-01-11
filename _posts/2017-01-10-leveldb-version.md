@@ -2,7 +2,7 @@
 layout: post
 title: leveldb之Version VersionEdit and VersionSet
 date: 2017-01-10 00:13
-categories: linux
+categories: leveldb
 tag: leveldb
 excerpt: 本文介绍leveldb中的Version相关的信息
 ---

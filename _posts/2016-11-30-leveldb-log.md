@@ -2,7 +2,7 @@
 layout: post
 title: leveldb之log文件
 date: 2016-11-30 20:54
-categories: linux
+categories: leveldb
 tag: leveldb
 excerpt: 本文介绍leveldb中的log文件
 ---
