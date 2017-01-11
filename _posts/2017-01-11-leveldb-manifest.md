@@ -427,6 +427,11 @@ Status VersionEdit::DecodeFrom(const Slice& src) {
 
 这个DecodeFrom没啥好说的，就是EncodeTo的反过程。
 
+我们看下MANIFEST Decode之后得到的VersionEdit：
+
+![](/assets/LevelDB/manifest_decode.jpg)
+
+
 VersionSet::Recover函数中，回放完毕，生成了一个最终版的Verison v，Finalize之后，调用了AppendVersion，这个函数很有意思，事实上，LogAndApply讲VersionEdit写入MANIFEST文件之后，也调用了AppendVersion，如下所示：
 
 
@@ -513,4 +518,41 @@ void VersionSet::AppendVersion(Version* v) {
 
 如果只有MANIFEST文件损坏，或者干脆误删除，leveldb是可以恢复的。这是结论，事实上这两种实验我都已经做过了。
 
-(先哄儿子睡觉，明天找时间更新)
+使用python-leveldb，通过如下手段可以修复Leveldb
+
+```
+import leveldb
+ret ＝ leveldb.RepairDB('/data/mon.iecvq/store.db')
+
+```
+
+
+为什么MANIFEST损坏或者丢失之后，依然可以恢复出来？LevelDB如何做到。
+
+对于LevelDB而言，修复过程如下：
+
+* 首先处理log，这些还未来得及写入的记录，写入新的.sst文件
+* 扫描所有的sst文件，生成元数据信息：包括number filesize， 最小key，最大key
+* 根据这些元数据信息，将生成新的MANIFEST文件。
+
+第三步如何生成新的MANIFEST？ 因为sstable文件是分level的，但是很不幸，我们无法从名字上判断出来文件属于哪个level。第三步处理的原则是，既然我分不出来，我就认为所有的sstale文件都属于level 0，因为level 0是允许重叠的，因此并没有违法基本的准则。
+
+当修复之后，第一次Open LevelDB的时候，很明显level 0 的文件可能远远超过4个文件，因此会Compaction。 又因为所有的文件都在Level 0
+这次Compaction无疑是非常沉重的。它会扫描所有的文件，归并排序，产生出level 1文件，进而产生出其他level的文件。
+
+从上面的处理流程看，如果只有MANIFEST文件丢失，其他文件没有损坏，LevelDB是不会丢失数据的，原因是，LevelDB既然已经无法将所有的数据分到不同的Level，但是数据毕竟没有丢，根据文件的number，完全可以判断出文件的新旧，从而确定不同sstable文件中的重复数据，which是最新的。经过一次比较耗时的归并排序，就可以生成最新的levelDB。
+
+
+上述的方法，从功能的角度看，是正确的，但是效率上不敢恭维。Riak曾经测试过78000个sstable 文件，490G的数据，大家都位于Level 0，归并排序需要花费6 weeks，6周啊，这个耗时让人发疯的。
+
+
+
+Riak 1.3 版本做了优化，改变了目录结构，对于google 最初版本的LevelDB，所有的文件都在一个目录下，但是Riak 1.3版本引入了子目录， 将不同level的sst 文件放入不同的子目录： 
+
+```
+sst_0
+sst_1
+...
+sst_6
+```
+
