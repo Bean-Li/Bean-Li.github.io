@@ -1,7 +1,7 @@
 ---
 layout: post
 title: leveldb之MANIFEST
-date: 2017-01-10 00:13
+date: 2017-01-11 10:06
 categories: leveldb
 tag: leveldb
 excerpt: 本文介绍leveldb中的MANIFIEST相关的信息
@@ -557,4 +557,160 @@ sst_6
 ```
 
 有了这个，重新生成MANIFEST自然就很简单了，同样的78000 sstable文件，Repair过程耗时是分钟级别的。
+
+
+# MANIFEST 文件的增长和重新生成
+
+存在一个问题不知道大家有没有意识到，随着时间的流逝，发生Compact的机会越来越多，Version跃升的次数越多，自然VersionEdit出现的次数越来越多，而每一个VersionEdit都会记录到MANIFEST，这必然会造成MANIFEST文件不断变大。
+
+ceph社区早就发现了这个问题， 有一个很bug是这么描述的：
+
+```
+BUG #5175 leveldb: LOG and MANIFEST file grow without bound (LOG being _text_ log !)
+
+Description
+
+leveldb has two files that seem to grow without bound and are only cleared on db open.
+
+The first is the LOG file which is a textual debug log that leveldb creates. It's opened when the db is opened 
+
+and is never closed or cycled (and leveldb doesn't have any method to make it cycle other than close/reopen).
+
+To make matter worse, if this file is on XFS, it's subject to XFS pre-allocation (so each time the file size 
+
+reaches the currently on-disk allocated size, the allocated size doubles, and so you get used disk space of 2M/
+
+4M/.../256M/512M giving big jumps in used disk space as reported by 'du -sh')
+
+The second file is the MANIFEST file which grows a little at each compaction and is also only 
+
+trimmed on db open. For long running (i.e. weeks/month), those can actually grow quite a bit
+
+ (especially LOG). Note that the same issue exists on OSD as well but they seem to receive a whole lot less 
+ 
+ updates than mon so it shows less.
+```
+
+MANIFEST文件和LOG文件一样，只要DB不关闭，这个文件一直在增长。我查看了我一个线上环境，MANIFEST文件已经膨胀到了205MB。
+
+试试上，随着时间的流逝，早期的版本是没有意义的，我们没必要还原所有的版本的情况，我们只需要还原还活着的版本的信息。MANIFEST只有一个机会变小，抛弃早期过时的VersionEdit，给当前的VersionSet来个快照，然后从新的起点开始累加VerisonEdit。这个机会就是重新开启DB。
+
+LevelDB的早期，只要Open DB必然会重新生成MANIFEST，哪怕MANIFEST文件大小比较小，这会给打开DB带来较大的延迟。
+
+
+![](/assets/LevelDB/reuse_manifest.jpg)
+
+这个commit将Open DB的延迟从80毫秒降低到了0.13ms，效果非常明显，即优化之后，并不是每一次的Open都会带来 MANIFEST的重新生成。
+
+在VersionSet::Recover函数中，会判断是否延用老的MANIFEST文件，判断逻辑如下：
+
+![](/assets/LevelDB/reuse_manifest_workflow.jpg)
+
+
+```
+bool VersionSet::ReuseManifest(const std::string& dscname,
+                               const std::string& dscbase) {
+  if (!options_->reuse_logs) {
+    return false;
+  }
+  FileType manifest_type;
+  uint64_t manifest_number;
+  uint64_t manifest_size;
+  
+  /*如果老的MANIFEST文件太大了，就不在延用，return false
+   *延用还是不延用的关键在如下语句：
+      descriptor_log_ = new log::Writer(descriptor_file_, manifest_size);
+   * 如果dscriptor_log_ 为NULL，当情况有变，发生了版本的跃升，有VersionEdit需要写入的MANIFEST的时候，
+   * 会首先判断descriptor_log_是否为NULL，如果为NULL，表示不要在延用老的MANIFEST了，要另起炉灶
+   * 所谓另起炉灶，即起一个空的MANIFEST，先要记下版本的Snapshot，然后将VersionEdit追加写入
+   */
+  
+  if (!ParseFileName(dscbase, &manifest_number, &manifest_type) ||
+      manifest_type != kDescriptorFile ||
+      !env_->GetFileSize(dscname, &manifest_size).ok() ||
+      // Make new compacted MANIFEST if old one is too big
+      manifest_size >= TargetFileSize(options_)) {
+    return false;
+  }
+
+  assert(descriptor_file_ == NULL);
+  assert(descriptor_log_ == NULL);
+  Status r = env_->NewAppendableFile(dscname, &descriptor_file_);
+  if (!r.ok()) {
+    Log(options_->info_log, "Reuse MANIFEST: %s\n", r.ToString().c_str());
+    assert(descriptor_file_ == NULL);
+    return false;
+  }
+
+  Log(options_->info_log, "Reusing MANIFEST %s\n", dscname.c_str());
+  descriptor_log_ = new log::Writer(descriptor_file_, manifest_size);
+  manifest_file_number_ = manifest_number;
+  return true;
+}
+```
+
+这部分逻辑要和LogAndApply对照看：延用老的MANIFEST，那么就会执行如下的语句：
+
+```
+  descriptor_log_ = new log::Writer(descriptor_file_, manifest_size);
+  manifest_file_number_ = manifest_number;
+  
+```
+
+这个语句的结果是，当version发生变化，出现新的VersionEdit的时候，并不会新创建MANIFEST文件，正相反，会追加写入VersionEdit。
+
+但是如果MANIFEST文件已经太大了，我们没必要保留全部的历史VersionEdit，我们完全可以以当前版本为基准，打一个SnapShot，后续的变化，以该SnapShot为基准，不停追加新的VersionEdit。
+
+我们看下LogAndApply中的相关部分：
+
+```
+
+/* descriptor_log_ == NULL 对应的是不延用老的MANIFEST文件 */
+if (descriptor_log_ == NULL) {
+    // No reason to unlock *mu here since we only hit this path in the
+    // first call to LogAndApply (when opening the database).
+    assert(descriptor_file_ == NULL);
+    new_manifest_file = DescriptorFileName(dbname_, manifest_file_number_);
+    edit->SetNextFile(next_file_number_);
+    s = env_->NewWritableFile(new_manifest_file, &descriptor_file_);
+    if (s.ok()) {
+      descriptor_log_ = new log::Writer(descriptor_file_);
+      
+      /*当前的版本情况打个快照，作为新MANIFEST的新起点8/
+      s = WriteSnapshot(descriptor_log_);
+    }
+  }
+
+  // Unlock during expensive MANIFEST log write
+  {
+    mu->Unlock();
+
+    // Write new record to MANIFEST log
+    if (s.ok()) {
+      std::string record;
+      edit->EncodeTo(&record);
+      s = descriptor_log_->AddRecord(record);
+      if (s.ok()) {
+        s = descriptor_file_->Sync();
+      }
+      if (!s.ok()) {
+        Log(options_->info_log, "MANIFEST write: %s\n", s.ToString().c_str());
+      }
+    }
+
+    // If we just created a new descriptor file, install it by writing a
+    // new CURRENT file that points to it.
+    if (s.ok() && !new_manifest_file.empty()) {
+      s = SetCurrentFile(env_, dbname_, manifest_file_number_);
+    }
+
+    mu->Lock();
+  }
+```
+
+如果不延用老的MANIFEST文件，会生成一个空的MANIFEST文件，同时调用WriteSnapShot将当前版本情况作为起点记录到MANIFEST文件。
+
+这种情况下，MANIFEST文件的大小会大大减少，就像自我介绍，完全可以自己出生起开始介绍起，完全不必从盘古开天辟地介绍起。
+
+可惜的是，只要DB不关闭，MANIFEST文件就没有机会整理。因此对于ceph-mon这种daemon进程，MANIFEST文件的大小会一直增长，除非重启ceph-mon才有机会整理。
 
