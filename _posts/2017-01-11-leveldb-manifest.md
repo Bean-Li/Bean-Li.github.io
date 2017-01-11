@@ -598,13 +598,13 @@ MANIFEST文件和LOG文件一样，只要DB不关闭，这个文件一直在增�
 LevelDB的早期，只要Open DB必然会重新生成MANIFEST，哪怕MANIFEST文件大小比较小，这会给打开DB带来较大的延迟。
 
 
-![](/assets/LevelDB/reuse_manifest.jpg)
+![](/assets/LevelDB/reuse_manifest.png)
 
 这个commit将Open DB的延迟从80毫秒降低到了0.13ms，效果非常明显，即优化之后，并不是每一次的Open都会带来 MANIFEST的重新生成。
 
 在VersionSet::Recover函数中，会判断是否延用老的MANIFEST文件，判断逻辑如下：
 
-![](/assets/LevelDB/reuse_manifest_workflow.jpg)
+![](/assets/LevelDB/reuse_manifest_workflow.png)
 
 
 ```
