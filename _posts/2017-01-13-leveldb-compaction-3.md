@@ -251,11 +251,11 @@ void VersionSet::SetupOtherInputs(Compaction* c) {
 
 ![](/assets/LevelDB/level_n_1_not.png)
 
-说笼罩，其实也不确切了，因为level n新加入了文件，很大key 可能造成key的范围扩大，只要扩大后的key的范围，不会involve 新的level n＋1的文件就行。
+说笼罩，其实也不确切了，因为level n新加入了文件，很大key 可能造成key的范围扩大，只要扩大后的key的范围，不会involve 新的level n＋1的文件就行。如下图所示，虽然已经超出了level n+1文件圈定的范围，但是并没有和level n＋1 其他的文件重叠交叉，这样也是可以的。
 
 ![](/assets/LevelDB/level_n_ok.png)
 
-如果满足这个条件是不是level n的文件 E是不是一定可以参战呢？ 也不一定，看参战文件是否已经超出了上限。
+如果满足上述条件是不是level n的文件 E是不是一定可以参战呢？ 也不一定，看参战文件是否已经超出了上限。
 
 ```
     if (expanded0.size() > c->inputs_[0].size() &&
