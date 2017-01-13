@@ -247,12 +247,13 @@ void VersionSet::SetupOtherInputs(Compaction* c) {
 
 
 
-如下图所示的情况，很明显E是不能加入战局的原因是 leven n＋1层的B C D无法笼罩 A＋E确定的范围，如果不管不顾，（A＋E）和（B＋C＋D） 一起Compaction造成的恶果就是，很可能和level n＋1 的某个已有文件(F)发生重叠，这就破坏了 level 1～level 6 同一层的文件内不许重叠的要求，因此，下图的情况，是不允许 level n的E参战的。
+如下图所示的情况，很明显E是不能加入战局的原因是 leven n＋1层的B C D无法笼罩 A＋E确定的范围，如果不管不顾，（A＋E）和（B＋C＋D） 一起Compaction造成的恶果就是，很可能和level n＋1 的某个已有文件(F)发生重叠，这就破坏了 level 1～level 6 同一层的文件之间不许重叠的约定，因此，下图的情况，是不允许 level n的E参战的。
 
 ![](/assets/LevelDB/level_n_1_not.png)
 
 说笼罩，其实也不确切了，因为level n新加入了文件，很大key 可能造成key的范围扩大，只要扩大后的key的范围，不会involve 新的level n＋1的文件就行。
 
+![](/assets/LevelDB/level_n_ok.png)
 
 如果满足这个条件是不是level n的文件 E是不是一定可以参战呢？ 也不一定，看参战文件是否已经超出了上限。
 
