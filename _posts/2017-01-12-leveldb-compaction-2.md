@@ -1,6 +1,6 @@
 ---
 layout: post
-title: leveldb之Compaction (2)
+title: leveldb之Compaction (2)--何时需要Compaction
 date: 2017-01-12 10:29
 categories: leveldb
 tag: leveldb

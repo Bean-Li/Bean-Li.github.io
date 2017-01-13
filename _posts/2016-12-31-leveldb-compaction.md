@@ -1,6 +1,6 @@
 ---
 layout: post
-title: leveldb之Compaction (1)
+title: leveldb之Compaction (1) --从MemTable到SSTable文件
 date: 2016-12-31 10:29
 categories: leveldb
 tag: leveldb
