@@ -51,3 +51,16 @@
     </div>
   </body>
 </html>
+<script type="text/javascript" src="/media/js/code/prettify.js"></script>
+<script type="text/javascript" src="/media/js/jquery-1.7.1.min.js"></script>
+<script type="text/javascript">
+  $(function(){
+    $("pre").addClass("prettyprint linenums");
+    prettyPrint();
+    $('.entry a').each(function(){
+      if($(this).attr("href").indexOf("bean-li") == -1){
+        $(this).attr("target", "_blank");
+      }
+    })
+  });
+</script>
