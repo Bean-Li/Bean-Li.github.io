@@ -12,7 +12,7 @@ excerpt: 本文介绍如何使用systemtap 定位 memory leak
 C/C++程序，Memory Leak是非常讨厌也是非常具有挑战的topic。简单的程序，靠code review就可以搞定，但是复杂的体系庞大的程序，很难通过code review找到对应的点，通过手段缩小范围是十分必要的。
 
 
-有Valgrind的工具可以跑程序，检查内存泄漏，但是更多地用于SuperLab自测，客户现场出了内存泄漏，需要的是一种不改变程序，尽可能保留宝贵的现场的定位手段。SystemTap提供出一种动态追踪的手段，当内存泄漏正在发生时，可以通过SystemTap追踪内存的分配（malloc）和释放（free），同时记录下用户程序的调用堆栈，统计一段时间，可以以分配内存的堆栈作为key，而以分配出去但是尚未free的内存总量作为value，观察对内存增长贡献最大的代码路径。
+有Valgrind的工具可以跑程序，检查内存泄漏，但是更多地用于SuperLab自测。客户现场出了内存泄漏，需要的是一种不改变程序，尽可能保留宝贵的现场的定位手段。SystemTap提供出一种动态追踪的手段，当内存泄漏正在发生时，可以通过SystemTap追踪内存的分配（malloc）和释放（free），同时记录下用户程序的调用堆栈，统计一段时间，以分配内存的堆栈作为key，而以分配出去但是尚未free的内存总量作为value，观察对内存增长贡献最大的代码路径。
 
 我们希望有一个一致的手段，当内存泄漏发生时，我们运行追踪脚本，统计出最可疑的调用堆栈路径。
 
@@ -164,7 +164,7 @@ probe timer.s(10) {
 stap -d /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.16 -d /usr/bin/ceph-mds  -d  /lib/x86_64-linux-gnu/libpthread-2.15.so  -DSTP_OVERLOAD_THRESHOLD=50000000000  -DMAXMAPENTRIES=1024000 -DMAXACTION=50000 -DMAXSKIPPED=2000 ./leaks.stp -x 372785
 ```
 
-因为要检查的程序是ceph-mds，其进程ID为372735。该进程调用malloc的堆栈特别多，因此很容易超过默认的MAXMAPENTRIES，因为为了执行，不得不调大的相应的参数。
+因为要检查的程序是ceph-mds，其进程ID为372785。该进程调用malloc的堆栈特别多，因此很容易超过默认的MAXMAPENTRIES，因为为了执行，不得不调大的相应的参数。
 
 其输出为：
 
