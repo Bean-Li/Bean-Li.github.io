@@ -22,7 +22,7 @@ C/C++程序，Memory Leak是非常讨厌也是非常具有挑战的topic。简�
 
 关于SystemTap跟踪glibc的函数，淘宝的霸爷（褚霸）早就指出了明路，对此不了解的可以参考：
 
-[systemtap如何跟踪libc.so)](http://blog.yufeng.info/archives/2033)
+[systemtap如何跟踪libc.so](http://blog.yufeng.info/archives/2033)
 
 因为我的系统是Ubuntu，对我而言，就是要照着霸爷指的明路，调通即可。
 
@@ -38,7 +38,7 @@ ubuntu CODE/stap » dpkg -l |grep libc6-dbg
 ii  libc6-dbg:amd64                            2.23-0ubuntu5                                               amd64        GNU C Library: detached debugging symbols
 ```
 
-装好之后，还是用淘宝霸爷的程序测试下：
+装好之后，还是用淘宝霸爷的程序测试下（glibc的路径不同，略有修改）：
 
 ```
 cat t.c
@@ -366,16 +366,21 @@ index 41782f2..cb7964f 100644
 
 说完了原因，然后说这种错误的解决方法：
 
-* 打patch，将上面diff内容存成 /tmp/stap.diff,然后跳转到/usr/share/systemtap/,执行：
+*  打patch，将上面diff内容存成 /tmp/stap.diff,然后跳转到/usr/share/systemtap/,执行：
+
   ```
   /usr/share/systemtap $ sudo patch -p1 < /tmp/stap.diff
   ```
-  然后添加 “#define STAPCONF_MOD_KALLSYMS 1”  到 runtime/linux/autoconf-mod_kallsyms.c.
+   然后添加 如下内容 到 runtime/linux/autoconf-mod_kallsyms.c的头部.
+  
+  ```
+  #define STAPCONF_MOD_KALLSYMS 1
+  ```
   
 * 卸载已有的SystemTap，源码安装SystemTap-3.0，下载地址如下：
   [源码下载地址](https://sourceware.org/systemtap/ftp/releases/)
   
-  安装步骤为： configure make make install 三部曲。
+  安装步骤为： configure / make / make install 三部曲。
   
   
  
