@@ -2,8 +2,8 @@
 layout: post
 title: disk cache policy in RAID
 date: 2016-03-15 11:51:40
-categories: linux
-tag: linux
+categories: Storage
+tag: megacli
 excerpt: disk cache policy会严重影响到数据的安全，尤其是可能有异常掉电的情况下
 ---
 

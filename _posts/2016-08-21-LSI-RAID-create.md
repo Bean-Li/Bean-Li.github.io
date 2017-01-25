@@ -2,7 +2,7 @@
 layout: post
 title: LSI MegaRaid 创建RAID和删除RAID
 date: 2016-08-21 14:43:40
-categories: linux
+categories: Storage
 tag: megacli
 excerpt: Megacli 创建和删除RAID
 ---

@@ -1,9 +1,9 @@
 ---
 layout: post
 title: 更换RAID中的故障盘
-date: 2016-07-19 14:43:40
-categories: linux
-tag: nfs
+date: 2016-07-23 14:43:40
+categories: Storage
+tag: megacli
 excerpt: RAID中某个盘发生故障，需要替换，如何确定它的位置，如何替换，如何查看RAID的rebuild进度？
 ---
 

@@ -2,7 +2,7 @@
 layout: post
 title: LSI MegaRaid Consistency Check
 date: 2016-08-14 14:43:40
-categories: linux
+categories: Storage
 tag: megacli
 excerpt: Megacli 查看和控制一致性检查相关的内容
 ---

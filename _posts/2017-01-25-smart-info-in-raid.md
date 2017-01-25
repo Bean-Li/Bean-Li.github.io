@@ -1,6 +1,6 @@
 ---
 layout: post
-title: Disk‘s S.M.A.R.T info in RAID
+title: Disk's S.M.A.R.T info in RAID
 date: 2017-01-25 14:43:40
 categories: Storage
 tag: megacli
