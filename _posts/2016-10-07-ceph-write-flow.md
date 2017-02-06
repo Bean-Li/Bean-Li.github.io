@@ -9,7 +9,6 @@ excerpt: 介绍ceph 写流程
 
 # 前言
 
-这篇文章有些地方有问题，后面花时间改正。如果有读者都到此处，请暂时忽略这篇博文，以防被误导。
 
 前面花了两篇博客的篇幅介绍了读流程。写流程和读流程相比，有大量的流程走向是公用的，我将这些公共的流程总结如下：
 
@@ -854,3 +853,5 @@ void ReplicatedBackend::sub_op_modify_reply(OpRequestRef op)
   }
 }
 ```
+关于这个交互，后面介绍完FileStore部分之后，会再次梳理这部分逻辑，可以比较Primary OSD和 Replica OSD在处理上区别。
+

@@ -371,6 +371,7 @@ index 41782f2..cb7964f 100644
   ```
   /usr/share/systemtap $ sudo patch -p1 < /tmp/stap.diff
   ```
+  
    然后添加 如下内容 到 runtime/linux/autoconf-mod_kallsyms.c的头部.
   
   ```
