@@ -52,9 +52,9 @@ Replica OSD 为osd.0
 
 之所以有这种区别在于，Replica完成对应的MileStone之后，需要向Primary汇报，因此是需要透过网络，向Primary OSD发送消息，而Primary是不需要发送消息的。
 
-| milestone | Primary回调上下文 ｜Primary 回调函数| Replica 回调上下文| Replica 回调函数 
-| ------| ------ | ------ |------|---------|
-|完成Journal的写入| C\_OSD\_OnOpCommit |op_commit| C\_OSD\_RepModifyCommit | sub\_op\_modify\_commit
+| milestone | Primary回调上下文|Primary 回调函数 | Replica 回调上下文 | Replica 回调函数 
+| ------| ------ | ------ | ------| ---------|
+|完成Journal的写入| C\_OSD\_OnOpCommit | op_commit| C\_OSD\_RepModifyCommit | sub\_op\_modify\_commit
 |完成OSD data partition的写入|C\_OSD\_OnOpApplied |op_applied| C\_OSD\_RepModifyApply | sub\_op\_modify\_applied
 
 
