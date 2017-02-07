@@ -1,6 +1,6 @@
 ---
 layout: post
-title: ceph write流程
+title: ceph write之FileStore
 date: 2017-02-07 14:43:40
 categories: ceph-internal
 tag: ceph
@@ -34,10 +34,35 @@ root@BEAN-2:/var/share/ezfs/shareroot#
 Primary OSD 为osd.2 
 Replica OSD 为osd.0
 
-下面我们看下相关的debug log
+
+我们今天分析的重点是FileStore部分，消息流通部分上面一篇博客已经讲过了。入口点为 queue_transactions。
+
+0. OSD::osd_op_tp -> 提交写请求到journal队列
+1. FileJournal::write_thread -> 发起aio请求
+2. FileJournal::write_finish_thread ->监听aio的完成情况，完成某aio写入后，完成事先约定的回调。
+3. 上一步中的queue_completions_thru承前启后，调用C_JournaledAhead回调，做了两件事：第一 将op放入FileStore队列，等待第二阶段，写入data partitions；第二 将实现约定好的回调 ondisk放入ondisk\_finisher的队列。
+4. 根据上一步，花开两朵，各表一枝，首先回调部分会调用实现约好的C\_OSD\_OnOpCommit中的op\_commit函数，通知到PG，Primary OSD写入Journal的部分已经完成。
+5. 另一支是： FileStore中的op\_tp线程池，会继续处理工作队列中的任务，通过_do_op函数处理事务，写入OSD的data partitions。事实上是写入Linux的Page Cache，并不会调用sync，不保证落盘。这一步是比较干货的一部，真正写入本地文件系统和omap;
+6. 完成写入后，通过工作队列的\_process\_finish调用FileStore的_finish_op函数，将onreadable的回调插入op\_finisher。而onreadable回调即之前约定的C\_OSD\_OnOpApplied,会通知PG，该OSD第二阶段的任务也完成了，已经写入了OSD data partitions，数据可以读了。当然了遗留了隐患，即没有sync。
+7. FileStore中的sync\_thread负责周期性地执行syncfs（对于EXT4和XFS 而言，btrfs不一样）。同时记录下一个Journal中的op_seq,写入OSD路径下的 current/commit\_op\_seq ，表示截止到这个op\_seq，Journal中数据和元数据，一定是执行过了syncfs，安全地落了盘（是否真正安全，也要考虑硬件的配置，安全指的是从本地文件系统层面安全）。因为Journal 是一块分区，一般4G～50G这种规模的大小。因为Journal的某些部分安全落了盘，所以Journal可以像ring buffer一样，安全地回滚，覆盖写入。
+8. 如果出现了异常关机，那么从current/commit_op_seq对应的序列号之后的Journal上的事务，都需要replay，重新执行5～7
+
+
+上面提到的部分，主要指的是Primary的OSD，对于Replica的OSD也是大差不差，主要的区别在第4步的回调和第6步的回调。
+
+之所以有这种区别在于，Replica完成对应的MileStone之后，需要向Primary汇报，因此是需要透过网络，向Primary OSD发送消息，而Primary是不需要发送消息的。
+
+| milestone | Primary回调上下文 ｜Primary 回调函数| Replica 回调上下文| Replica 回调函数 
+| ------| ------ | ------ |------|---------|
+|完成Journal的写入| C\_OSD\_OnOpCommit |op_commit| C\_OSD\_RepModifyCommit | sub\_op\_modify\_commit
+|完成OSD data partition的写入|C\_OSD\_OnOpApplied |op_applied| C\_OSD\_RepModifyApply | sub\_op\_modify\_applied
+
+
 
 
 # Primary OSD log on write
+
+
 
 ```
 2017-02-06 18:01:05.258532 7fce051fd700 15 osd.2 323 enqueue_op 0x7fce2e065a00 prio 127 cost 3145728 latency 0.009482 osd_op(client.48424379.1:4 10000000619.00000000 [write 0~3145728 [1@-1]] 2.38fbabae snapc 1=[] ondisk+write e323) v4
@@ -101,7 +126,7 @@ XFS和EXT4都是writeahead，btrfs 自己是parallel
 
 
 2017-02-06 18:01:05.259978 7fce17fe6700 10 osd.2 323 dequeue_op 0x7fce2e065a00 finish
-
+－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－
 FileJournal类中write_thread成员对应的线程被条件变量唤醒，调用linux aio函数，直接写入journal
 
 2017-02-06 18:01:05.261443 7fce3bdf3700 20 journal write_thread_entry woke up
@@ -115,6 +140,11 @@ FileJournal类中write_thread成员对应的线程被条件变量唤醒，调用
 2017-02-06 18:01:05.261974 7fce3bdf3700 20 journal write_aio_bl 790171648~3153920 seq 3835063
 2017-02-06 18:01:05.261994 7fce3bdf3700 20 journal write_aio_bl .. 790171648~3153920 in 3
 2017-02-06 18:01:05.281449 7fce3bdf3700 20 journal write_thread_entry going to sleep
+
+
+－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－
+上面一段的作用是发起aio，下面到了write_finish_thread_entry，这个线程的作用是听，听aio操作是否完成，如果完成调用相关的Finisher回调
+
 2017-02-06 18:01:05.281451 7fce3b5f2700 20 journal write_finish_thread_entry waiting for aio(s)
 2017-02-06 18:01:05.281553 7fce3b5f2700 10 journal write_finish_thread_entry aio 0~4096 done
 2017-02-06 18:01:05.281560 7fce3b5f2700 20 journal check_aio_completion
@@ -123,10 +153,12 @@ FileJournal类中write_thread成员对应的线程被条件变量唤醒，调用
 2017-02-06 18:01:05.281757 7fce3b5f2700 10 journal write_finish_thread_entry aio 790171648~3153920 done
 2017-02-06 18:01:05.281770 7fce3b5f2700 20 journal check_aio_completion
 
-下面两句表示seq 3835063的操作完成
+下面两句表示seq 3835063对应写，写入Journal部分已经完成
 2017-02-06 18:01:05.281771 7fce3b5f2700 20 journal check_aio_completion completed seq 3835063 790171648~3153920
 2017-02-06 18:01:05.281776 7fce3b5f2700 20 journal check_aio_completion queueing finishers through seq 3835063
 
+
+queue_completions_thru是个非常重要的函数,最重要的是调用回调函数：
 
 2017-02-06 18:01:05.281778 7fce3b5f2700 10 journal queue_completions_thru seq 3835063 queueing seq 3835063 0x7fce2e360b20 lat 0.021823
 2017-02-06 18:01:05.281792 7fce3b5f2700 20 journal write_finish_thread_entry sleeping
