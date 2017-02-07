@@ -11,6 +11,7 @@ excerpt: 通过debug log来整理学习ceph的写入流程
 
 通过设置debug\_osd/debug\_filestore/debug\_journal为20，写入一个3M的文件，然后通过log 梳理写入流程。
 
+ceph的版本是giant。
 
 
 # 写入测试
