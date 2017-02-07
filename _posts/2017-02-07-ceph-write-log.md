@@ -1,7 +1,7 @@
 
 ---
 layout: post
-title: 通过debug log 学习 ceph write流程
+title: ceph write流程
 date: 2017-02-07 14:43:40
 categories: ceph-internal
 tag: ceph
@@ -10,7 +10,7 @@ excerpt: 通过debug log来整理学习ceph的写入流程
 
 # 前言
 
-通过设置debug_osd/debug_filestore/debug_journal为20，写入一个3M的文件，然后通过log 梳理写入流程。
+通过设置debug\_osd/debug\_filestore/debug\_journal为20，写入一个3M的文件，然后通过log 梳理写入流程。
 
 
 
