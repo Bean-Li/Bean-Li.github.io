@@ -1,4 +1,17 @@
 
+---
+layout: post
+title: 通过debug log 学习 ceph write流程
+date: 2017-01-25 14:43:40
+categories: ceph-internal
+tag: ceph
+excerpt: 通过debug log来整理学习ceph的写入流程
+---
+
+# 前言
+
+通过设置debug_osd/debug_filestore/debug_journal为20，写入一个3M的文件，然后通过log 梳理写入流程。
+
 
 
 # 写入测试
@@ -17,6 +30,12 @@ root@BEAN-2:/var/share/ezfs/shareroot# ceph osd map data 10000000619.00000000
 osdmap e323 pool 'data' (2) object '10000000619.00000000' -> pg 2.38fbabae (2.3ae) -> up ([2,0], p2) acting ([2,0], p2)
 root@BEAN-2:/var/share/ezfs/shareroot# 
 ```
+
+Primary OSD 为osd.2 
+Replica OSD 为osd.0
+
+下面我们看下相关的debug log
+
 
 # Primary OSD log on write
 
@@ -84,6 +103,7 @@ XFS和EXT4都是writeahead，btrfs 自己是parallel
 2017-02-06 18:01:05.259978 7fce17fe6700 10 osd.2 323 dequeue_op 0x7fce2e065a00 finish
 
 FileJournal类中write_thread成员对应的线程被条件变量唤醒，调用linux aio函数，直接写入journal
+
 2017-02-06 18:01:05.261443 7fce3bdf3700 20 journal write_thread_entry woke up
 2017-02-06 18:01:05.261472 7fce3bdf3700 10 journal room 4294963199 max_size 4294967296 pos 790171648 header.start 790171648 top 4096
 2017-02-06 18:01:05.261478 7fce3bdf3700 10 journal check_for_full at 790171648 : 3153920 < 4294963199
@@ -102,8 +122,12 @@ FileJournal类中write_thread成员对应的线程被条件变量唤醒，调用
 2017-02-06 18:01:05.281566 7fce3b5f2700 20 journal write_finish_thread_entry waiting for aio(s)
 2017-02-06 18:01:05.281757 7fce3b5f2700 10 journal write_finish_thread_entry aio 790171648~3153920 done
 2017-02-06 18:01:05.281770 7fce3b5f2700 20 journal check_aio_completion
+
+下面两句表示seq 3835063的操作完成
 2017-02-06 18:01:05.281771 7fce3b5f2700 20 journal check_aio_completion completed seq 3835063 790171648~3153920
 2017-02-06 18:01:05.281776 7fce3b5f2700 20 journal check_aio_completion queueing finishers through seq 3835063
+
+
 2017-02-06 18:01:05.281778 7fce3b5f2700 10 journal queue_completions_thru seq 3835063 queueing seq 3835063 0x7fce2e360b20 lat 0.021823
 2017-02-06 18:01:05.281792 7fce3b5f2700 20 journal write_finish_thread_entry sleeping
 2017-02-06 18:01:05.281803 7fce3a9f1700  5 filestore(/data/osd.2) _journaled_ahead 0x7fce449386f0 seq 3835063 osr(2.3ae 0x7fce2c46cbc0) 0x7fce09d28980
