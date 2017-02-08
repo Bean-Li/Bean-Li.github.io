@@ -48,6 +48,10 @@ Replica OSD 为osd.0
 8. 如果出现了异常关机，那么从current/commit_op_seq对应的序列号之后的Journal上的事务，都需要replay，重新执行5～7
 
 
+
+
+
+
 上面提到的部分，主要指的是Primary的OSD，对于Replica的OSD也是大差不差，主要的区别在第4步的回调和第6步的回调。
 
 之所以有这种区别在于，Replica完成对应的MileStone之后，需要向Primary汇报，因此是需要透过网络，向Primary OSD发送消息，而Primary是不需要发送消息的。
@@ -56,6 +60,8 @@ Replica OSD 为osd.0
 | ------| ------ | ------ | ------| ---------|
 |完成Journal的写入| C\_OSD\_OnOpCommit | op_commit| C\_OSD\_RepModifyCommit | sub\_op\_modify\_commit
 |完成OSD data partition的写入|C\_OSD\_OnOpApplied |op_applied| C\_OSD\_RepModifyApply | sub\_op\_modify\_applied
+
+
 
 
 
