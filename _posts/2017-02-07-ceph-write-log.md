@@ -42,8 +42,8 @@ Replica OSD 为osd.0
 2. FileJournal::write_finish_thread ->监听aio的完成情况，完成某aio写入后，完成事先约定的回调。
 3. 上一步中的queue_completions_thru承前启后，调用C_JournaledAhead回调，做了两件事：第一 将op放入FileStore队列，等待第二阶段，写入data partitions；第二 将实现约定好的回调 ondisk放入ondisk\_finisher的队列。
 4. 根据上一步，花开两朵，各表一枝，首先回调部分会调用实现约好的C\_OSD\_OnOpCommit中的op\_commit函数，通知到PG，Primary OSD写入Journal的部分已经完成。
-5. 另一支是： FileStore中的op\_tp线程池，会继续处理工作队列中的任务，通过_do_op函数处理事务，写入OSD的data partitions。事实上是写入Linux的Page Cache，并不会调用sync，不保证落盘。这一步是比较干货的一部，真正写入本地文件系统和omap;
-6. 完成写入后，通过工作队列的\_process\_finish调用FileStore的_finish_op函数，将onreadable的回调插入op\_finisher。而onreadable回调即之前约定的C\_OSD\_OnOpApplied,会通知PG，该OSD第二阶段的任务也完成了，已经写入了OSD data partitions，数据可以读了。当然了遗留了隐患，即没有sync。
+5. 另一支是： FileStore中的op\_tp线程池，会继续处理工作队列中的任务，通过\_do\_op函数处理事务，写入OSD的data partitions。事实上是写入Linux的Page Cache，并不会调用sync，不保证落盘。这一步是比较干货的一部，真正写入本地文件系统和omap;
+6. 完成写入后，通过工作队列的\_process\_finish调用FileStore的\_finish\_op函数，将onreadable的回调插入op\_finisher。而onreadable回调即之前约定的C\_OSD\_OnOpApplied,会通知PG，该OSD第二阶段的任务也完成了，已经写入了OSD data partitions，数据可以读了。当然了遗留了隐患，即没有sync。
 7. FileStore中的sync\_thread负责周期性地执行syncfs（对于EXT4和XFS 而言，btrfs不一样）。同时记录下一个Journal中的op_seq,写入OSD路径下的 current/commit\_op\_seq ，表示截止到这个op\_seq，Journal中数据和元数据，一定是执行过了syncfs，安全地落了盘（是否真正安全，也要考虑硬件的配置，安全指的是从本地文件系统层面安全）。因为Journal 是一块分区，一般4G～50G这种规模的大小。因为Journal的某些部分安全落了盘，所以Journal可以像ring buffer一样，安全地回滚，覆盖写入。
 8. 如果出现了异常关机，那么从current/commit_op_seq对应的序列号之后的Journal上的事务，都需要replay，重新执行5～7
 
@@ -56,6 +56,197 @@ Replica OSD 为osd.0
 | ------| ------ | ------ | ------| ---------|
 |完成Journal的写入| C\_OSD\_OnOpCommit | op_commit| C\_OSD\_RepModifyCommit | sub\_op\_modify\_commit
 |完成OSD data partition的写入|C\_OSD\_OnOpApplied |op_applied| C\_OSD\_RepModifyApply | sub\_op\_modify\_applied
+
+
+
+这里面有一个细节，即Replica OSD到底会向Primary OSD发送几个消息？
+
+从上一篇博文上看，应当是两个消息，消息类型都是MOSDSubOpReply，区别在标志位。第一阶段写入Journal完成的，如果发送消息，则标志位为CEPH_OSD_FLAG_ONDISK，第二阶段写入Data Partition完成，如果发送消息，则标志位为CEPH_OSD_FLAG_ACK。 应该是2个消息。其实不然。
+
+当Replica OSD完成Journal的写入，会通过C_OSD_RepModifyCommit上下文，调用sub_op_modify_commit函数，当Replica OSD完成OSD data partitions的时候，会通过C_OSD_RepModifyApply 上下文，调用sub_op_modify_applied。我们细细阅读代码，就能看出端倪。
+
+```c
+void ReplicatedBackend::sub_op_modify_applied(RepModifyRef rm)
+{
+  rm->op->mark_event("sub_op_applied");
+  rm->applied = true; 
+
+  dout(10) << "sub_op_modify_applied on " << rm << " op "
+           << *rm->op->get_req() << dendl;
+  MOSDSubOp *m = static_cast<MOSDSubOp*>(rm->op->get_req());
+  assert(m->get_header().type == MSG_OSD_SUBOP);
+  
+  if (!rm->committed) {
+    // send ack to acker only if we haven't sent a commit already
+    MOSDSubOpReply *ack = new MOSDSubOpReply(
+      m, parent->whoami_shard(),
+      0, get_osdmap()->get_epoch(), CEPH_OSD_FLAG_ACK);
+    ack->set_priority(CEPH_MSG_PRIO_HIGH); // this better match commit priority!
+    get_parent()->send_message_osd_cluster(
+      rm->ackerosd, ack, get_osdmap()->get_epoch());
+  }
+                                                                                                                                                                            
+  parent->op_applied(m->version);
+}
+void ReplicatedBackend::sub_op_modify_commit(RepModifyRef rm)
+{
+  rm->op->mark_commit_sent();
+  /*一上来先将commited标志设为true，后续执行sub_op_modify_applied的时候，会首先判断该标志位
+   *如果发现该标志位为true，则sub_op_modify_applied就不会发送ACK给Primary OSD*/
+  rm->committed = true; 
+
+  // send commit.
+  dout(10) << "sub_op_modify_commit on op " << *rm->op->get_req()                                                                                                           
+           << ", sending commit to osd." << rm->ackerosd
+           << dendl;
+  
+  assert(get_osdmap()->is_up(rm->ackerosd));
+  get_parent()->update_last_complete_ondisk(rm->last_complete);
+  
+  /*无论是commit阶段还是apply阶段完成， Replica OSD都是发送同一种类型的消息，区别在于flag
+   * commit完成，标志位为CEPH_OSD_FLAG_ONDISK，apply完成，标志位为CEPH_OSD_FLAG_ACK*/
+  MOSDSubOpReply *commit = new MOSDSubOpReply(
+    static_cast<MOSDSubOp*>(rm->op->get_req()),
+    get_parent()->whoami_shard(),
+    0, get_osdmap()->get_epoch(), CEPH_OSD_FLAG_ONDISK); 
+  commit->set_last_complete_ondisk(rm->last_complete);
+  commit->set_priority(CEPH_MSG_PRIO_HIGH); // this better match ack priority!
+  get_parent()->send_message_osd_cluster(
+    rm->ackerosd, commit, get_osdmap()->get_epoch());
+  
+  log_subop_stats(get_parent()->get_logger(), rm->op, l_osd_sop_w);
+}
+```
+
+从上面的注释也不难看出，当第二阶段完成，只有当我们没有发送过commit完成的ACK消息的时候，才会发送带apply已经完成的消息到Primary OSD。反言之，如果已经发送过第一阶段的commit 已经完成的消息，就不会再发送apply阶段已经完成的ACK消息到Primary OSD。
+
+
+
+因此，Replica OSD基本上只会发送一条ACK消息到Primary OSD。细细揣摩，这也是合理的，无论是第一阶段commit完成，还是第二阶段apply完成，都至少说明数据写入了持久化的Journal上，哪怕后面还没来得及写入data partition，OSD重启之后也可以通过Journal Replay将数据写入data partitions。
+
+我们看一下Primary OSD收到Replica OSD发过来的ACK之后的处理逻辑：
+
+```c
+    if (r->ack_type & CEPH_OSD_FLAG_ONDISK) {
+      assert(ip_op.waiting_for_commit.count(from));
+      ip_op.waiting_for_commit.erase(from);
+      if (ip_op.op)
+        ip_op.op->mark_event("sub_op_commit_rec");
+    } else {
+      assert(ip_op.waiting_for_applied.count(from));
+      if (ip_op.op)
+        ip_op.op->mark_event("sub_op_applied_rec");
+    }
+    ip_op.waiting_for_applied.erase(from);
+
+```
+
+我初读这个代码的时候，始终写不明白，为什么无论收到commit ACK还是apply ACK都要执行
+
+```
+ip_op.waiting_for_applied.erase(from);
+```
+
+这条语句，总觉得这句话应该放在else里面，只有收到Replica OSD发来的apply ACK才执行这句话。其则不然，因为Replica OSD一般一会发送一条消息给Primary OSD，无论是commit还是apply，都从waiting_for_applied中抹掉该Replica OSD。
+
+
+
+这里面暗含的逻辑是，对于写入，所有的OSD都必须完成commit阶段，才叫完成了commit阶段，才会通知client写入已经完成，但是第二阶段apply，不需要每个OSD都完成，只需要Primary OSD完成该阶段，就可以通知client数据处于可读的状态。事实上，读取，仅仅是读取Primary OSD上的数据，不会去Replica OSD请求数据。
+
+
+
+因此Primary OSD完成第二阶段apply，Primary OSD从waiting_for_applied中清除，才有机会调用InProgressOp类中的on_applied->complete函数。
+
+```
+void ReplicatedBackend::op_applied(
+  InProgressOp *op)
+{
+  dout(10) << __func__ << ": " << op->tid << dendl;
+  if (op->op)
+    op->op->mark_event("op_applied");
+
+  op->waiting_for_applied.erase(get_parent()->whoami_shard());
+  parent->op_applied(op->v);
+
+  if (op->waiting_for_applied.empty()) {
+    op->on_applied->complete(0);
+    op->on_applied = 0;
+  }
+  if (op->done()) {
+    assert(!op->on_commit && !op->on_applied);
+    in_progress_ops.erase(op->tid);
+  }
+}
+```
+
+而InProgressOp中的on_applied定义自issue_repop函数中的如下语句：
+
+```c
+  Context *on_all_commit = new C_OSD_RepopCommit(this, repop);
+  Context *on_all_applied = new C_OSD_RepopApplied(this, repop);
+```
+
+该上下文的定义如下：
+
+```c
+class C_OSD_RepopCommit : public Context {
+  ReplicatedPGRef pg;
+  boost::intrusive_ptr<ReplicatedPG::RepGather> repop;
+public:
+  C_OSD_RepopCommit(ReplicatedPG *pg, ReplicatedPG::RepGather *repop)
+      : pg(pg), repop(repop) {}
+  void finish(int) {
+    pg->repop_all_committed(repop.get());
+  }
+};
+
+void ReplicatedPG::repop_all_committed(RepGather *repop)
+{
+  dout(10) << __func__ << ": repop tid " << repop->rep_tid << " all committed "
+           << dendl;
+  repop->all_committed = true; /*所有的OSD都已经完成了第一阶段commit，而且是确实完成了第一阶段*/
+
+  if (!repop->rep_aborted) {
+    if (repop->v != eversion_t()) {
+      last_update_ondisk = repop->v;
+      last_complete_ondisk = repop->pg_local_last_complete;
+    }
+    eval_repop(repop);
+  }
+}
+class C_OSD_RepopApplied : public Context {
+  ReplicatedPGRef pg;
+  boost::intrusive_ptr<ReplicatedPG::RepGather> repop;
+public:
+  C_OSD_RepopApplied(ReplicatedPG *pg, ReplicatedPG::RepGather *repop)
+  : pg(pg), repop(repop) {}
+  void finish(int) {
+    pg->repop_all_applied(repop.get());
+  }
+};
+
+
+void ReplicatedPG::repop_all_applied(RepGather *repop)
+{
+  dout(10) << __func__ << ": repop tid " << repop->rep_tid << " all applied "
+           << dendl;
+  /*所有的OSD都已经applied，
+   *根据上面的讨论，事实上并不一定
+   *但是这是可以保证所有的OSD完成commit + PrimaryOSD完成apply*/
+  repop->all_applied = true; 
+  if (!repop->rep_aborted) {
+    eval_repop(repop);                                                                                                                                                      
+    if (repop->on_applied) {
+     repop->on_applied->complete(0);
+     repop->on_applied = NULL;
+    }
+  }
+}
+```
+
+我们可以看到，repop_all_committed函数也好，repop_all_applied也罢，最终都要执行同一个函数：eval_repop。这个函数是负责和client交互的，所有的OSD都commit了，就发送写入完成ACK给client端，所有的OSD都applied，就发送数据可读 ACK给client端。
+
+
 
 
 
@@ -209,7 +400,6 @@ queue_completions_thru是个非常重要的函数,最重要的是调用回调函
 2017-02-06 18:01:05.944603 7fce11fda700 20 osd.2 323 update_osd_stat osd_stat(2720 MB used, 33419 MB avail, 36156 MB total, peers [0,1]/[] op hist [])
 2017-02-06 18:01:05.944647 7fce11fda700  5 osd.2 323 heartbeat: osd_stat(2720 MB used, 33419 MB avail, 36156 MB total, peers [0,1]/[] op hist [])
 root@BEAN-3:/var/log/ceph# 
-
 ```
 
 # Replica OSD log on write
