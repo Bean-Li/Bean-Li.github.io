@@ -182,7 +182,7 @@ ip_op.waiting_for_applied.erase(from);
 
 因此Primary OSD完成第二阶段apply，Primary OSD从waiting_for_applied中清除，才有机会调用InProgressOp类中的on_applied->complete函数。
 
-```
+```c++
 void ReplicatedBackend::op_applied(
   InProgressOp *op)
 {
@@ -213,7 +213,7 @@ void ReplicatedBackend::op_applied(
 
 该上下文的定义如下：
 
-```c
+```c++
 class C_OSD_RepopCommit : public Context {
   ReplicatedPGRef pg;
   boost::intrusive_ptr<ReplicatedPG::RepGather> repop;
