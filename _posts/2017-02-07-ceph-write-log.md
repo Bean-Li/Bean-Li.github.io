@@ -1,6 +1,6 @@
 ---
 layout: post
-title: ceph write之FileStore
+title: ceph写流程（2）
 date: 2017-02-07 14:43:40
 categories: ceph-internal
 tag: ceph
@@ -127,18 +127,43 @@ void ReplicatedBackend::sub_op_modify_commit(RepModifyRef rm)
 我们看一下Primary OSD收到Replica OSD发过来的ACK之后的处理逻辑：
 
 ```c
-    if (r->ack_type & CEPH_OSD_FLAG_ONDISK) {
+     if (r->ack_type & CEPH_OSD_FLAG_ONDISK) {
       assert(ip_op.waiting_for_commit.count(from));
-      ip_op.waiting_for_commit.erase(from);
+      ip_op.waiting_for_commit.erase(from);                                                                                                                                 
       if (ip_op.op)
         ip_op.op->mark_event("sub_op_commit_rec");
     } else {
       assert(ip_op.waiting_for_applied.count(from));
       if (ip_op.op)
         ip_op.op->mark_event("sub_op_applied_rec");
-    }
+    } 
+    /*无论是哪种消息，都要从waiting_for_applied中删除该Replica OSD
+     *原因上面已经提到*/
     ip_op.waiting_for_applied.erase(from);
 
+    parent->update_peer_last_complete_ondisk(
+      from,
+      r->get_last_complete_ondisk());
+
+    if (ip_op.waiting_for_applied.empty() &&
+        ip_op.on_applied) {
+      /*调用InProgressOp中on_applied上下文中的回调
+       *如果Primary OSD早早完成了第二阶段apply，则需要在此处回调
+       *如果Primary OSD 还未完成第二阶段apply，则无需回调
+       *另一个可能调用InProgressOp中on_applied上下文中的回调的时机是下面提到的
+       *Primary完成第二阶段之后，op_applied函数中，会判断是需要回调*/
+      ip_op.on_applied->complete(0);
+      ip_op.on_applied = 0;
+    }   
+    if (ip_op.waiting_for_commit.empty() &&
+        ip_op.on_commit) {
+      ip_op.on_commit->complete(0);
+      ip_op.on_commit= 0;
+    }   
+    if (ip_op.done()) {
+      assert(!ip_op.on_commit && !ip_op.on_applied);
+      in_progress_ops.erase(iter);
+    } 
 ```
 
 我初读这个代码的时候，始终写不明白，为什么无论收到commit ACK还是apply ACK都要执行
@@ -383,6 +408,10 @@ queue_completions_thru是个非常重要的函数,最重要的是调用回调函
 2017-02-06 18:01:05.301575 7fce08bf3700 15 osd.2 323 enqueue_op 0x7fce2f4bcc00 prio 196 cost 0 latency 0.000121 osd_sub_op_reply(client.48424379.1:4 2.3ae 38fbabae/10000000619.00000000/head//2 [] ondisk, result = 0) v2
 2017-02-06 18:01:05.301620 7fce157e1700 10 osd.2 323 dequeue_op 0x7fce2f4bcc00 prio 196 cost 0 latency 0.000166 osd_sub_op_reply(client.48424379.1:4 2.3ae 38fbabae/10000000619.00000000/head//2 [] ondisk, result = 0) v2 pg pg[2.3ae( v 323'4 (0'0,323'4] local-les=323 n=3 ec=10 les/c 323/323 322/322/308) [2,0] r=0 lpr=322 luod=172'3 crt=172'1 lcod 0'0 mlcod 0'0 active+clean]
 2017-02-06 18:01:05.301663 7fce157e1700 10 osd.2 pg_epoch: 323 pg[2.3ae( v 323'4 (0'0,323'4] local-les=323 n=3 ec=10 les/c 323/323 322/322/308) [2,0] r=0 lpr=322 luod=172'3 crt=172'1 lcod 0'0 mlcod 0'0 active+clean] handle_message: 0x7fce2f4bcc00
+
+--------------------------------------------------------------------------------------------
+注意下面语句中的sub_op_modify_reply函数，该函数处理Replica OSD发过来的ACK，ack_type 4 表示消息的FLAG为CEPH_OSD_FLAG_ONDISK，因此Primary OSD收到的是第一阶段commit完成的ACK，继续往下找，是不会找到第二条sub_op_modify_reply相关的日志，原因无他，就是因为 Replica OSD不会发送两条消息。
+
 2017-02-06 18:01:05.301683 7fce157e1700  7 osd.2 pg_epoch: 323 pg[2.3ae( v 323'4 (0'0,323'4] local-les=323 n=3 ec=10 les/c 323/323 322/322/308) [2,0] r=0 lpr=322 luod=172'3 crt=172'1 lcod 0'0 mlcod 0'0 active+clean] sub_op_modify_reply: tid 224265 op  ack_type 4 from 0
 2017-02-06 18:01:05.301704 7fce157e1700 10 osd.2 pg_epoch: 323 pg[2.3ae( v 323'4 (0'0,323'4] local-les=323 n=3 ec=10 les/c 323/323 322/322/308) [2,0] r=0 lpr=322 luod=172'3 crt=172'1 lcod 0'0 mlcod 0'0 active+clean] repop_all_applied: repop tid 224265 all applied 
 2017-02-06 18:01:05.301718 7fce157e1700 10 osd.2 pg_epoch: 323 pg[2.3ae( v 323'4 (0'0,323'4] local-les=323 n=3 ec=10 les/c 323/323 322/322/308) [2,0] r=0 lpr=322 luod=172'3 crt=172'1 lcod 0'0 mlcod 0'0 active+clean] eval_repop repgather(0x7fce0c04cf40 323'4 rep_tid=224265 committed?=0 applied?=1 lock=0 op=osd_op(client.48424379.1:4 10000000619.00000000 [write 0~3145728] 2.38fbabae snapc 1=[] ondisk+write e323) v4) wants=d
@@ -442,6 +471,10 @@ root@BEAN-3:/var/log/ceph#
 2017-02-06 18:01:05.301212 7fa07b7f9700 10 journal op_apply_start 2497991 open_ops 0 -> 1
 2017-02-06 18:01:05.301220 7fa07b7f9700  5 filestore(/data/osd.0) _do_op 0x7fa0739d1e20 seq 2497991 osr(2.3ae 0x7fa0705b2aa0)/0x7fa0705b2aa0 start
 2017-02-06 18:01:05.301225 7fa07b7f9700 10 filestore(/data/osd.0) _do_transaction on 0x7fa04992c578
+
+---------------------------------------------------------------------------------------------
+注意下面这行，Replica OSD还是调用回调函数sub_op_modify_commit，向Primary OSD发送消息，通知Primary OSD第一阶段的任务commit已经完成。
+
 2017-02-06 18:01:05.301208 7fa0777f1700 10 osd.0 pg_epoch: 323 pg[2.3ae( v 323'4 (0'0,323'4] local-les=323 n=3 ec=10 les/c 323/323 322/322/308) [2,0] r=1 lpr=322 pi=159-321/7 luod=0'0 crt=172'3 lcod 0'0 active] sub_op_modify_commit on op osd_sub_op(client.48424379.1:4 2.3ae 38fbabae/10000000619.00000000/head//2 [] v 323'4 snapset=0=[]:[] snapc=0=[]) v11, sending commit to osd.2
 2017-02-06 18:01:05.301235 7fa07b7f9700 15 filestore(/data/osd.0) _omap_setkeys 2.3ae_head/3ae//head//2
 2017-02-06 18:01:05.301239 7fa0777f1700 20 osd.0 323 share_map_peer 0x7fa05a06a480 already has epoch 323
@@ -464,5 +497,8 @@ root@BEAN-3:/var/log/ceph#
 2017-02-06 18:01:05.304596 7fa05b2e3700 10 osd.0 323 handle_replica_op osd_sub_op(mds.0.5:692 3.74 6e5f474/200.00000001/head//3 [] v 323'1474 snapset=0=[]:[] snapc=0=[]) v11 epoch 323
 2017-02-06 18:01:05.304613 7fa05b2e3700 20 osd.0 323 should_share_map osd.1 10.11.12.2:6802/4401 323
 2017-02-06 18:01:05.304623 7fa05b2e3700 15 osd.0 323 enqueue_op 0x7fa04b020900 prio 196 cost 2657 latency 0.000079 osd_sub_op(mds.0.5:692 3.74 6e5f474/200.00000001/head//3 [] v 323'1474 snapset=0=[]:[] snapc=0=[]) v11
+
+----------------------------------------------------------------------------------------------
+Replica OSD 执行完毕了第二阶段apply，开始调用sub_op_modify_applied回调函数，但是该函数并不会向Primary OSD 发送消息。
 2017-02-06 18:01:05.304655 7fa077ff2700 10 osd.0 pg_epoch: 323 pg[2.3ae( v 323'4 (0'0,323'4] local-les=323 n=3 ec=10 les/c 323/323 322/322/308) [2,0] r=1 lpr=322 pi=159-321/7 luod=0'0 crt=172'3 lcod 172'3 active] sub_op_modify_applied on 0x7fa04992c480 op osd_sub_op(client.48424379.1:4 2.3ae 38fbabae/10000000619.00000000/head//2 [] v 323'4 snapset=0=[]:[] snapc=0=[]) v11
 ```
