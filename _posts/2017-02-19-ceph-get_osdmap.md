@@ -81,4 +81,4 @@ osd.1 up in weight 1 recovery_weight 1 up_from 523 up_thru 536 down_at 520 last_
 osd.2 up in weight 1 recovery_weight 1 up_from 481 up_thru 536 down_at 480 last_clean_interval [414,475) 10.11.12.3:6801/4360 10.11.12.3:6802/4360 10.11.12.3:6803/4360 10.11.12.3:6804/4360 exists,up caa8d048-2ef1-401a-8506-29949e79fe3c
 ```
 
-注意其中每个OSD的  up_from up_thru last_clean_interval等信息，这些信息是我们分析状态迁移所必须的信息。
+注意其中每个OSD的  up\_from up\_thru last\_clean\_interval等信息，这些信息是我们分析状态迁移所必须的信息。
