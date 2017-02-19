@@ -1,7 +1,7 @@
 ---
 layout: post
 title: Get osdmap at specific epoch 
-date: 2017-02-07 14:43:40
+date: 2017-02-19 11:43:40
 categories: ceph
 tag: ceph
 excerpt: 获取指定epoch的OSDMap
