@@ -28,6 +28,8 @@ root@BEAN-1:~# ceph osd stat
 
 ceph osd dump是获取当前版本的OSDMap的命令。
 
+其输出和下一小节输出的内容基本一致，毕竟当前epoch的OSDMap 只不过特殊一点的OSDMap。
+
 # 获取历史版本的OSDMap
 
 分成两步走：
