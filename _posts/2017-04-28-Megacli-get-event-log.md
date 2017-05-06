@@ -4,7 +4,7 @@ title: Megacli get event log
 date: 2017-04-28 11:51:40
 categories: Storage
 tag: megacli
-excerpt: 
+excerpt: 获取RAID的event log
 ---
 
 # 前言
