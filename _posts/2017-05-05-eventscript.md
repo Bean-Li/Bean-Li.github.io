@@ -40,6 +40,7 @@ root@controller02:~# ctdb scriptstatus
 
 ```
 ctdb 支持插件式的检查，用户可以定义很多eventscript，ctdb daemon会周期性地执行eventscript中定义的检查。
+
 ![](assets/CTDB/ctdb_eventscript.png)
 
 那ctdb daemon是如何周期性地执行这些检查呢，执行那些检查呢？
@@ -50,7 +51,8 @@ ctdb主进程通过如下代码途径，最终会调用ctdb_check_health，而ct
 
 启动的时候，ctdb_wait_until_recovered函数会检查，recovery是否已经完成，如果完成则进入ctdb_check_health的定时任务，否则继续注册ctdb_wait_until_recovered定时任务，进行下一轮检查。
 
-```
+```c
+
 static void ctdb_check_health(struct event_context *ev, struct timed_event *te, 
                   struct timeval t, void *private_data)
 {
@@ -142,7 +144,8 @@ MonitorInterval         = 15
 
 这里面有个问题要考虑清楚，第一个问题就是eventscript支持的事件很多。我们可以从check_options函数看出eventscript支持的事件。有些事件还需要其他的参数，有些事件不需要其他的参数，check_options函数会检查相应的参数是否齐备。
 
-```
+```c
+
 static bool check_options(enum ctdb_eventscript_call call, const char *options)
 {
     switch (call) {
@@ -258,7 +261,8 @@ drwxr-xr-x 2 root root 4096 May  4 08:03 tickles/
 ### 是否所有的脚本文件都会执行
 答案是否定的，因为有些文件并没有执行权限，因此并不会执行，ctdb在ctdb_get_script_list函数中遍历 /etc/ctdb/event.d下的所有文件，如果文件没有可执行权限，就会跳过该文件。
 
-```
+```c
+
 static bool check_executable(const char *dir, const char *name)
 {
     char *full;
@@ -304,7 +308,7 @@ static bool check_executable(const char *dir, const char *name)
 
 答案是串行执行。下面我们进入
 
-```
+```c
 static int ctdb_event_script_callback_v(struct ctdb_context *ctdb,
                     const void *mem_ctx,
                     void (*callback)(struct ctdb_context *, int, void *),
@@ -402,7 +406,7 @@ static int ctdb_event_script_callback_v(struct ctdb_context *ctdb,
 
 接下来就要遍历目录下的eventscript，逐个执行了：
 
-```
+```c
 
     /* This is not a child of state, since we save it in destructor. */
     state->scripts = ctdb_get_script_list(ctdb, ctdb);
@@ -452,13 +456,15 @@ static int ctdb_event_script_callback_v(struct ctdb_context *ctdb,
 
 代码中这一行用的是：state->scripts->scripts[0].status ,从我的角度看，0改成state->current 会更妙一些，会更容易帮助读者理解源码。我们继续分析fork_child_for_script。
 
-```
+```c
+
  state->scripts->scripts[0].status = fork_child_for_script(ctdb, state);
 ```
 
 fork_child_for_script 顾名思义就是创建子进程来执行某一个script，用子进程来执行的好处是，父进程不会阻塞，父进程只需要安心地等待子进程传过来的消息即可。
 
-```
+```c
+
 static int fork_child_for_script(struct ctdb_context *ctdb,
                  struct ctdb_event_script_state *state)
 {
@@ -524,7 +530,8 @@ static int fork_child_for_script(struct ctdb_context *ctdb,
 
 我们一起走入ctdb_event_script_handler函数一探究竟：
 
-```
+```c
+
 /* called when child is finished */
 static void ctdb_event_script_handler(struct event_context *ev, struct fd_event *fde, uint16_t flags, void *p)
 {                                                                         
@@ -584,7 +591,7 @@ static void ctdb_event_script_handler(struct event_context *ev, struct fd_event 
 
 注意，执行下一个脚本，执行的也是fork_child_for_scirpt,那么这个函数到底如何确定还行哪一个函数呢？玄机就在state 参数内。state中有一个变量叫做current，记录本轮应该执行第几个脚本。我们再次回到
 
-```
+```c
 
 struct ctdb_script_wire {
     /*脚本的名字*/
