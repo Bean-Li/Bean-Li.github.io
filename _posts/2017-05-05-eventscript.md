@@ -40,11 +40,11 @@ root@controller02:~# ctdb scriptstatus
 
 ```
 ctdb 支持插件式的检查，用户可以定义很多eventscript，ctdb daemon会周期性地执行eventscript中定义的检查。
-![](pics/ctdb_eventscript.png)
+![](assets/CTDB/ctdb_eventscript.png)
 
 那ctdb daemon是如何周期性地执行这些检查呢，执行那些检查呢？
 
-![](pics/ctdb_health_check.png)
+![](assets/CTDB/ctdb_health_check.png)
 
 ctdb主进程通过如下代码途径，最终会调用ctdb_check_health，而ctdb_check_health是一个定时任务，周期性地执行。
 
