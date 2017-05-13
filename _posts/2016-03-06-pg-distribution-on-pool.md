@@ -49,7 +49,7 @@ https://www.spinics.net/lists/ceph-devel/msg26336.html
 ```
 	osdmaptool om --export-crush cm 
 	或者 
-	ceph ods getcrushmap -o cm
+	ceph osd getcrushmap -o cm
 ```
 
 * 获取指定pool上PG的分布
