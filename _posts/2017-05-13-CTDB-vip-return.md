@@ -345,7 +345,7 @@ static void ip_reallocate_handler(struct ctdb_context *ctdb, uint64_t srvid, TDB
 
 下面我们可以进入process_ipreallocate_requests函数，来看下recmaster如何处理。
 
-```
+```c
 static void process_ipreallocate_requests(struct ctdb_context *ctdb, struct ctdb_recoverd *rec)
 {                                                                                                                                                   
     TALLOC_CTX *tmp_ctx = talloc_new(ctdb);
@@ -421,7 +421,7 @@ ctdb_takeover_run 这个函数应该算是虚IP管理的核心了，它的意思
 ```
 * 通知所有节点接管自己应该负责的虚IP
 
-```
+```c
         if (tmp_ip->addr.sa.sa_family == AF_INET) {
             ipv4.pnn = tmp_ip->pnn;
             ipv4.sin = tmp_ip->addr.ip;
@@ -588,7 +588,7 @@ static void ctdb_vnn_unassign_iface(struct ctdb_context *ctdb,
 ```
 
 也就说，该节点要实打实地重新接管自己原本该负责的172.16.146.133这个IP.
-```
+```c
 int32_t ctdb_control_takeover_ip(struct ctdb_context *ctdb,
                  struct ctdb_req_control *c,
                  TDB_DATA indata,                  
@@ -723,7 +723,7 @@ int32_t ctdb_control_takeover_ip(struct ctdb_context *ctdb,
 
 对于我们这种情况而言，我们并没有这个public ip，因此，我们需要执行ctdb_do_takeip函数：
 
-```
+```c
 static int32_t ctdb_do_takeip(struct ctdb_context *ctdb,
                   struct ctdb_req_control *c,
                   struct ctdb_vnn *vnn)
@@ -785,7 +785,7 @@ static int32_t ctdb_do_takeip(struct ctdb_context *ctdb,
 
 其中比较重要的两个脚本是10.interface 和13.per_ip_routing。 先简单介绍下 10.interface吧。
 
-```
+```bash
 # called when ctdbd wants to claim an IP address
      takeip)
 	iface=$2
@@ -833,7 +833,7 @@ add_ip_to_iface()
 ```
 除了这些锁部分之外，调用了 interface_modify.sh中的内容：
 
-```
+```bash
 add_ip_to_iface()
 {
 	local _iface=$1
