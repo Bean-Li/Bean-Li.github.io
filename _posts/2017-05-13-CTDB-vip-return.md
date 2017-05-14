@@ -1,7 +1,7 @@
 ---
 layout: post
-title: CTDB 之 重启网络，虚IP如何重新回归
-date: 2017-05-12 21:43:40
+title: CTDB 之 重启网络虚IP消失以后
+date: 2017-05-13 12:43:40
 categories: CTDB
 tag: CTDB
 excerpt: 重启网络之后，CTDB IP会被剔除掉，但是CTDB进程会检测到这个事件，重新设置，接管该虚IP。How？
