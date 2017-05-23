@@ -1,4 +1,3 @@
-
 ---
 layout: post
 title: CTDB 之 发现其他节点
