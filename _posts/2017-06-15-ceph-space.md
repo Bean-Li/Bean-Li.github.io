@@ -144,7 +144,7 @@ void PGMonitor::dump_fs_stats(stringstream &ss, Formatter *f, bool verbose)
 
 单个osd_stat_t的计算在update_osd_stat 函数中：
 
-```
+```cpp
 void OSDService::update_osd_stat(vector<int>& hb_peers)
 {
   Mutex::Locker lock(stat_lock);
@@ -180,7 +180,7 @@ void OSDService::update_osd_stat(vector<int>& hb_peers)
 
 注意，OSD的store的实例是FileStore，而FileStore的statfs实现如下：
 
-```
+```cpp
 int FileStore::statfs(struct statfs *buf)                          
 {
   // basedir and current_fn are different fs if the backend is ZFS
@@ -200,7 +200,7 @@ int FileStore::statfs(struct statfs *buf)
 
 ##  dump_pool_stats
 
-```
+```cpp
 void PGMonitor::dump_pool_stats(stringstream &ss, Formatter *f, bool verbose) 
 {
   TextTable tbl; 
@@ -322,7 +322,7 @@ void PGMonitor::dump_pool_stats(stringstream &ss, Formatter *f, bool verbose)
 
 其中中间输出数据部分是dump_object_stat_sum ： 
 
-```
+```cpp
 void PGMonitor::dump_object_stat_sum(TextTable &tbl, Formatter *f,
                                      object_stat_sum_t &sum, uint64_t avail,
                                      bool verbose)
