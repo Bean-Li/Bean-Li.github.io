@@ -1,7 +1,7 @@
 ---
 layout: post
 title: ceph 集群空间使用情况
-date: 2016-10-06 22:21:40
+date: 2017-06-16 00:21:40
 categories: ceph-internal
 tag: ceph
 excerpt: 介绍ceph 空间情况
