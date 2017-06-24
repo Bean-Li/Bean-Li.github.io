@@ -1,7 +1,7 @@
 ---
 layout: post
 title: CTDB之当public interface down
-date: 2017-05-13 12:43:40
+date: 2017-06-22 12:43:40
 categories: CTDB
 tag: CTDB
 excerpt: 当public interface down了之后，CTDB如何检测到，延迟多久？
