@@ -1,4 +1,3 @@
-```
 ---
 layout: post
 title: 深入理解iostat
@@ -7,7 +6,7 @@ categories: linux
 tag: linux
 excerpt: 理解iostat的输出，常见误区，数据来源，计算方法等
 ---
-```
+
 
 # 前言
 
