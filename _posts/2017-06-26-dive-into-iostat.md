@@ -646,6 +646,16 @@ void compute_ext_disk_stats(struct stats_disk *sdc, struct stats_disk *sdp,
 
 如果一个盘的能力很强悍，随机小IO（4K）fio测试中我们会看到如下现象：当IOPS为1000的时候，iosta输出的svctm为1(ms)，当IOPS为2000的时候，iostat输出的svctm为0.5(ms),当IOPS为3000的时候，iostat输出的svctm为0.33。原因其实无他，因为这种情况下%util都是100%，即当采样周期是1秒的时候，用满了1秒，tput就是fio指定的--rate-iops 即1000、2000、3000，因此算出来svctm为对应的1、0.5、0.33。
 
+![IOPS 1000](/assets/IOSTAT/iops_1000_svctm.png)
+
+![IOPS 2000](/assets/IOSTAT/iops_2000_svctm.png)
+
+![IOPS 3000](/assets/IOSTAT/iops_3000_svctm.png)
+
+![IOPS 5000](/assets/IOSTAT/iops_5000_svctm.png)
+
+（注意上面的盘sdg是iSCSI，存储空间是由分布式存储提供，不要问我为什么单个盘随机IOPS能无压力的到5000）
+
 因此从这个例子看，把iostat的输出中的svctm看作是IO的处理时间是相当不靠谱的。为了防止带来的误解，可以直接忽略这个参数。
 
 既然svctm不能反映IO处理时间，那么有没有一个参数可以测量块设备的IO平均处理时间呢？很遗憾iostat是做不到的。但是只要思想不滑坡，办法总比困难多，blktrace这个神器可能得到这个设备的IO平均处理时间。
