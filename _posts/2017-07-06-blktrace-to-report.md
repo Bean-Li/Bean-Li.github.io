@@ -1,4 +1,13 @@
+---
+layout: post
+title: blktrace分析IO
+date: 2017-07-06 22:00:40
+categories: linux
+tag: linux
+excerpt: 使用blktrace分析块设备的IO信息。
+---
 # 前言
+
 
 上篇博客介绍了iostat的一些输出，这篇介绍blktrace这个神器。上一节介绍iostat的时候，我们心心念念希望得到块设备处理io的service time，而不是service time + wait time，因为对于评估一个磁盘或者云磁盘而言，service time才是衡量磁盘性能的核心指标和直接指标。很不幸iostat无法提供这个指标，但是blktrace可以。
 
