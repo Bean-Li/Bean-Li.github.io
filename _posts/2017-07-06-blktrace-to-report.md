@@ -252,6 +252,18 @@ Q2C 平均在0.002522832 秒，即2.5毫秒，
 无论是service time 还是客户感知到的await time，都是非常短的，表现非常不俗。但是D2C花费的时间只占整个Q2C的30%，
 51%以上的时间花费在I2D。
 
+下面我们看下D2C和Q2C随着时间的分布情况：
+
+![](/assets/IO/sdb.d2c_latency.png)
+
+![](/assets/IO/sdb.q2c_latency.png)
+
+绘制图片需要的信息可以通过如下指令得到：
+
+```
+btt -i sdb.blktrace.bin -l sdb.d2c_latency
+btt -i sdb.blktrace.bin -q sdb.q2c_latency
+```
 
 
 
