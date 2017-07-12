@@ -12,7 +12,7 @@ excerpt: 获取apache请求的处理时间
 有时候，需要了解CGI处理程序的效率，知道各个apache请求的处理事件，为将来进一步优化提供判断的依据。
 
 
-##方法
+## 方法
 
 /etc/apache2/apache2.conf中，在
 
