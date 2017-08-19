@@ -1,7 +1,7 @@
 ---
 layout: post
 title: ceph-mon的timecheck机制
-date: 2016-06-11 14:57:40
+date: 2017-08-19 14:57:40
 categories: ceph-internal
 tag: ceph-internal
 excerpt: 本文介绍ceph-mon中的timecheck机制
