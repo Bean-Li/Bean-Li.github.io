@@ -41,7 +41,7 @@ ceph-mon负责的功能有很多：
 
 不介绍ceph-mon的PAXOS以及election，似乎很难介绍好其他功能，但是们还是暂时放下Paxos和election，我们起点从有一个节点赢得ceph-mon monitor leader的选举开始：
 
-如果封建时代，新皇登记总要大赦天下，提拔一群新的大臣到重要岗位一样，赢得monitor leader 之后，也会做一些重新洗牌的动作。其中timecheck的重新初始化也在其中。
+如同封建时代，新皇登基总要大赦天下，提拔一群新的大臣到重要岗位，某个节点的ceph-mon赢得monitor leader 选举之后，也会做一些重新洗牌的动作。其中timecheck的重新初始化也在其中。
 
 ```c++
 void Monitor::win_election(epoch_t epoch, set<int>& active, uint64_t features,
