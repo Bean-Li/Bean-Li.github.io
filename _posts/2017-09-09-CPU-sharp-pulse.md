@@ -1,12 +1,11 @@
 ---
 layout: post
-title: atop: 谁引起了CPU小尖峰
+title: 使用atop排查 谁引起了CPU小尖峰
 date: 2017-09-09 14:43:40
 categories: linux
 tag: atop
 excerpt: atop 如何排查某个时段，哪个进程消耗的CPU资源最多？
 ---
-
 
 # 前言
 
