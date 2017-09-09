@@ -4,7 +4,7 @@ title: atop: 谁引起了CPU小尖峰
 date: 2017-09-09 14:43:40
 categories: linux
 tag: atop
-excerpt: 本文介绍重新打包deb package的方法
+excerpt: atop 如何排查某个时段，哪个进程消耗的CPU资源最多？
 ---
 
 
