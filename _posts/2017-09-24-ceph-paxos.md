@@ -73,7 +73,7 @@ Paxos的Trigger点总是要发起提案，那么ceph中需要发起提案的地�
   ```
   ceph相关的函数接口在ConfigKeyService::store_put和store_delete
   
-  ```
+  ```c++
 	void ConfigKeyService::store_put(string key, bufferlist &bl, Context *cb)
 	{
 	  bufferlist proposal_bl;
@@ -103,7 +103,7 @@ Paxos的Trigger点总是要发起提案，那么ceph中需要发起提案的地�
   
   这些PaxosService，为了节省存储空间，也会通过调用maybe_trim来删除一些太老太旧的数据：
   
-  ```
+  ```c++
  	void Monitor::tick()
 	{
 	  // ok go.
@@ -123,7 +123,7 @@ Paxos的Trigger点总是要发起提案，那么ceph中需要发起提案的地�
 
 需要发起proposal的场合，主要是上面提到的这几种，在决定做proposal之前，都会讲操作封装成事务,存放在Paxos类的变量pending_proposal中.
 
-```
+```c++
   /**
    * Pending proposal transaction
    *
@@ -156,7 +156,7 @@ Paxos的Trigger点总是要发起提案，那么ceph中需要发起提案的地�
 
 注意，很多逻辑完成Paxos提案全过程之后，会有一些回调函数，这些回调会暂时放入pending_finishers列表。当Paxos的滚滚车轮一旦启动，会存放入committing_finishers列表。
 
-```
+```c++
 bool Paxos::trigger_propose()
 {
   if (is_active()) {
@@ -327,7 +327,7 @@ void Paxos::begin(bufferlist& v)
 
 注意，下面的代码是begin函数的关键：
 
-```
+```c++
   MonitorDBStore::TransactionRef t(new MonitorDBStore::Transaction);
   t->put(get_name(), last_committed+1, new_value);
 
@@ -408,7 +408,7 @@ Peon收到OP_BEGIN消息之后，开始处理。
 
 Peon只会处理pn>= accepted_pn的提案，否则就会拒绝该提案：
 
-```
+```c++
   // can we accept this?
   if (begin->pn < accepted_pn) {
     dout(10) << " we accepted a higher pn " << accepted_pn << ", ignoring" << dendl;
@@ -441,7 +441,7 @@ pending_pn=100
 ```
 当Peon决定接受提案的时候，将会讲new_value暂时保存到DB(leveldb or rocksdb)中，做的事情和mon leader是一致的：
 
-```
+```c++
   // yes.
   version_t v = last_committed+1;
   dout(10) << "accepting value for " << v << " pn " << accepted_pn << dendl;
@@ -479,7 +479,7 @@ pending_pn=100
 
 mon leader自从向所有的peon发送了OP_BEGIN消息之后，就望穿秋水地等待回应。
 
-```
+```c++
 // leader
 void Paxos::handle_accept(MonOpRequestRef op)
 {
@@ -529,7 +529,7 @@ void Paxos::handle_accept(MonOpRequestRef op)
 
 注意，和一般的Paxos不同的是，mon leader要收到所有的peon的OP_ACCEPT之后，才会进入下一阶段，而不是半数以上。
 
-```
+```c++
   /*要收到所有的peon的OP_ACCEPT，才会进入到commit阶段*/
   if (accepted == mon->get_quorum()) {
     // yay, commit!
@@ -543,7 +543,7 @@ void Paxos::handle_accept(MonOpRequestRef op)
 
 当mon leader掉用commit_start的时候，表示走到了第二阶段。和二阶段提交有点类似，该提案已经得到了全部的peon的同意，因此可以大刀阔斧地将真正的事务提交，让提案生效。
 
-```
+```c++
 void Paxos::commit_start()
 {
   dout(10) << __func__ << " " << (last_committed+1) << dendl;
@@ -594,7 +594,7 @@ void Paxos::commit_start()
 此处事务的处理，是异步的，掉用了MonitorDBStore的queue_transaction函数。当事务完成之后，会掉用相关的回调函数。
 
 
-```
+```c++
   void queue_transaction(MonitorDBStore::TransactionRef t,
 			 Context *oncommit) {
     io_work.queue(new C_DoTransaction(this, t, oncommit));
@@ -604,7 +604,7 @@ void Paxos::commit_start()
 
 回调函数定义在：
 
-```
+```c++
 struct C_Committed : public Context {
   Paxos *paxos;
   explicit C_Committed(Paxos *p) : paxos(p) {}
@@ -628,7 +628,7 @@ struct C_Committed : public Context {
 
 
 
-```
+```c++
 void Paxos::commit_finish()
 {
   dout(20) << __func__ << " " << (last_committed+1) << dendl;
@@ -701,7 +701,7 @@ void Paxos::commit_finish()
 * 将new_value中的值解码成事务，然后调用后端存储接口执行请求，这里采用同步写，和leader节点不一样
 * 刷新PaxosService服务
 
-```
+```c++
 void Paxos::handle_commit(MonOpRequestRef op)
 {
   op->mark_paxos_event("handle_commit");
