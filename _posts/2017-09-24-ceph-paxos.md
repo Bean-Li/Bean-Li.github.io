@@ -539,6 +539,41 @@ void Paxos::handle_accept(MonOpRequestRef op)
   }
 ```
 
+leader在begin函数中，为了防止无法及时收集齐所有的OP_ACCEPT消息，注册了超时事件：
+
+```
+  // set timeout event
+  accept_timeout_event = new C_MonContext(mon, [this](int r) {
+      if (r == -ECANCELED)
+	return;
+      accept_timeout();
+    });
+  mon->timer.add_event_after(g_conf->mon_accept_timeout_factor *
+			     g_conf->mon_lease,
+			     accept_timeout_event);
+			     
+```
+```
+OPTION(mon_lease, OPT_FLOAT, 5)       // lease interval
+OPTION(mon_accept_timeout_factor, OPT_FLOAT, 2.0)    // on leader, if paxos update isn't accepted
+
+```
+也就是说10秒中之内，不能收到所有的OP_ACCEPT，mon leader就会掉用accept_timeout函数,会掉用mon->bootstrap.
+
+```
+void Paxos::accept_timeout()
+{
+  dout(1) << "accept timeout, calling fresh election" << dendl;
+  accept_timeout_event = 0;
+  assert(mon->is_leader());
+  assert(is_updating() || is_updating_previous() || is_writing() ||
+	 is_writing_previous());
+  logger->inc(l_paxos_accept_timeout);
+  mon->bootstrap();
+}
+```
+
+
 ## commit_start
 
 当mon leader掉用commit_start的时候，表示走到了第二阶段。和二阶段提交有点类似，该提案已经得到了全部的peon的同意，因此可以大刀阔斧地将真正的事务提交，让提案生效。
