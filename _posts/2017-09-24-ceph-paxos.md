@@ -734,3 +734,7 @@ peon收到延长租约的消息OP\_LEASE之后，会掉用handle_lease，peon的
 
 
 
+
+# 参考文献
+1. [Ceph Monitor Paxos](http://blog.wjin.org/posts/ceph-monitor-paxos.html)
+2. 
