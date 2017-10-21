@@ -1,3 +1,12 @@
+---
+layout: post
+title: flashcache 源码解析
+date: 2017-10-20 17:20:40
+categories: storage
+tag: flashcache
+excerpt: 本文flashcache的layout和寻址方式
+---
+
 # 前言
 
 从flashcache的创建开始，介绍flashcache在SSD上的layout和内存数据结构，简单地说就是数据组织形式。
