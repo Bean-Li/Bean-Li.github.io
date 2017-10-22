@@ -2,7 +2,7 @@
 layout: post
 title: flashcache 源码解析
 date: 2017-10-20 17:20:40
-categories: storage
+categories: Storage
 tag: flashcache
 excerpt: 本文flashcache的layout和寻址方式
 ---
