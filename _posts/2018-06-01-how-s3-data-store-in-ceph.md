@@ -76,7 +76,7 @@ root@44:/# rados -p .rgw.buckets stat default.11383165.2_syslog
 
 ```
 
-![](/assets/ceph-internals/small_object_file_layout.png)
+![](/assets/ceph_internals/small_object_file_layout.png)
 
 
 
@@ -106,7 +106,7 @@ default.11383165.2__shadow_.mGwYpWb3FXieaaaDNdaPzfs546ysNnT_293
 
 对于head_obj的命名组成，和上面一样，我就不重复绘图了，对于中间的对象和最后的尾对象，命名组成如下：
 
-![](/assets/ceph-internals/big_object_file_layout.png)
+![](/assets/ceph_internals/big_object_file_layout.png)
 
 这里面有个问题，因为对象名字中有随机字符，当然只有一个大于4M的对象文件的时候，比如我就上传了一2G+的大文件，所有的bucket内的带shadow的文件都属于这个scaler.iso 对象。
 
@@ -289,7 +289,7 @@ root@45:/var/log/radosgw# rados -p .rgw.buckets stat default.14434697.1_scaler_i
 
 命名规则如下：
 
-![](/assets/ceph-internals/multipart_object.png)
+![](/assets/ceph_internals/multipart_object.png)
 
 需要注意的是，RADOS中multipart对象就是普通的rgw_obj_stripe_size ，即4M大小：
 
@@ -341,7 +341,7 @@ root@45:/var/log/radosgw# rados -p .rgw.buckets stat default.14434697.1__shadow_
 
 毫无意外，两个shadow 1个4M，另一个2M，加上分片的multipart 对象，共10M。
 
-![](/assets/ceph-internals/multipart_shadow_obj.png)
+![](/assets/ceph_internals/multipart_shadow_obj.png)
 
 同样的问题是，用户读对象的时候，根据上传 时候的情况，决定了数据对象的名字，那么如何区分是分片上传的对象还是完整上传的对象呢？
 
