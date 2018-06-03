@@ -1,6 +1,6 @@
 ---
 layout: post
-title: How s3 data store in ceh
+title: How s3 data store in ceph
 date: 2018-06-01 17:20:40
 categories: ceph-internal
 tag: ceph-internal
