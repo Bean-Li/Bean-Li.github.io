@@ -1,7 +1,15 @@
+---
+layout: post
+title: How s3 data store in ceh
+date: 2018-06-01 17:20:40
+categories: ceph-internal
+tag: ceph-internal
+excerpt: 本文介绍s3 data 如何存储
+---
+
 # 前言
 
 本文解决Where is my data 之对象存储部分，主要集中在S3对象存储。
-
 
 
 # where is my s3 data
