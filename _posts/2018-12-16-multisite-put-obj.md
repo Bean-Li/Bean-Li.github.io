@@ -244,7 +244,7 @@ root@NODE-246:~# rados -p default.rgw.log listomapkeys data_log.61
 * bucket index 对象的omap中增加bi log
 * default.rgw.log pool中的data_log对象的omap中增加data log
 
-##　bi log
+## bi log
 
 当上传对象完毕之后，我们查看bucket index shard，可以看到如下内容：
 
