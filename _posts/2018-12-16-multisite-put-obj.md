@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  MultiSite: Radosgw上传对象
+title:  Radosgw上传对象与multisite相关的逻辑
 date: 2018-12-16 13:20:40
 categories: ceph-internal
 tag: ceph-internal
