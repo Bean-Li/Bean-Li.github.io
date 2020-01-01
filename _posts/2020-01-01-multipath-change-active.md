@@ -1,7 +1,7 @@
 ---
 layout: post
 title: Multipath 切换主路径
-date: 2016-03-07 13:12:40
+date: 2020-01-01 15:49:40
 categories: Linux
 tag: multipath
 excerpt:  multipath 切换主路径的方法。
