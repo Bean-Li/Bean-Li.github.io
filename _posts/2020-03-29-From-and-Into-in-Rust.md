@@ -1,4 +1,3 @@
-
 ---
 layout: post
 title: From and Into trait in Rust
