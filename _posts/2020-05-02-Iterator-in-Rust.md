@@ -1,10 +1,11 @@
+---
 layout: post
 title: Iterator in Rust (1)
 date: 2020-05-01 10:29
 categories: Rust
 tag: Rust
 excerpt:  Iterator in Rust (1)
-
+---
 # 前言
 
 Iterators是迭代器，迭代器用来产生一串值。Rust提供了迭代器来遍历vectors，string，hashtables等，除此外：
