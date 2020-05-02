@@ -300,3 +300,40 @@ To: jimb
 From: superego <editor@oreilly.com>
 ```
 
+#skip 和 skip_while 
+
+skip和take正好相反。skip是丢掉迭代器前n个元素。
+
+我们做命令行解析的时候，第一个参数一般是可执行文件本身，需要被忽略掉。
+
+```Rust
+for arg in std::env::args.skip(1) {
+	...
+}
+```
+
+skip_while的用法和take_while正好相反：
+
+* drop 或skip掉 迭代器的前面的元素
+* 直到闭包函数返回false
+
+```Rust
+fn main() {
+    let message = "To: jimb\r\n\
+                   From: superego <editor@oreilly.com>\r\n\
+                   \r\n\
+                   Did you get the any writing done today \r\n\
+                   when will you stop wasting time plotting fractals\r\n";
+    for body in message.lines().skip_while(|l| !l.is_empty()){
+        println!("{}", body)
+    }
+}
+```
+
+跳过前面的非空行，从第一个空行开始，打印后面所有的行：
+
+```SHELl
+Did you get the any writing done today
+when will you stop wasting time plotting fractals
+```
+
