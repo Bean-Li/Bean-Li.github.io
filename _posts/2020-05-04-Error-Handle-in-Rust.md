@@ -1,6 +1,6 @@
 ---
 layout: post
-title: Rust错误处理: 初阶
+title: Rust错误处理
 date: 2020-05-04 23:00
 categories: Rust
 tag: Rust
