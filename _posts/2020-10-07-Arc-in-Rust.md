@@ -67,3 +67,22 @@ fn main() {
 
 上面的用法中， Arc::clone 并不是复制了一份vec，而是仅仅增减了一个引用计数，这是多个线程之间共享数据的一个方法。
 
+回到我们最开始的问题，巨大的数据结构，多个线程之间共享：
+
+```Rust
+fn process_files_in_parallel(filenames: Vec<String>, glossary: Arc<GigabyteMap>)
+   -> io::Result<()>
+{
+   ....
+   for worklist in worklists 
+   {
+       let glossary_for_child = glossary.clone() ;
+       thread_handlers.push(
+           spawn(move || process_files(worklist, &glossary_for_child))
+       );
+   }
+   ....
+   
+}
+```
+
