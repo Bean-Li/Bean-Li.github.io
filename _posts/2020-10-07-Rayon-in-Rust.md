@@ -54,13 +54,13 @@ join是Rayon的核心原语，前面提到的par_iter是构建在join之上的�
 
 join的使用非常简单：
 
-```
+```rust
 join(|| do_something(), || do_something_else());
 ```
 
 其函数原型如下：
 
-```
+```rust
 pub fn join<A, B, RA, RB>(oper_a: A, oper_b: B) -> (RA, RB) 
 where
     A: FnOnce() -> RA + Send,
@@ -113,7 +113,7 @@ fn join<A,B>(oper_a: A, oper_b: B)
 
 # rayon join 示例
 
-```Rust
+```rust
 let mut v = vec![5, 1, 8, 22, 0, 44];
 quick_sort(&mut v);
 assert_eq!(v, vec![0, 1, 5, 8, 22, 44]);
@@ -154,7 +154,7 @@ fn partition<T:PartialOrd+Send>(v: &mut [T]) -> usize {
 
 这个结果是原作者对代码做了一些优化，即如数组长度低于5K，就使用串行的排序：
 
-```
+```rust
 fn quick_sort<J:Joiner, T:PartialOrd+Send>(v: &mut [T]) {
     if v.len() <= 1 {
         return;

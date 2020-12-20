@@ -13,7 +13,7 @@ excerpt: Rc and Arc in Rust
 
 请看下面的例子：
 
- ```Rust
+ ```rust
 `  fn process_files_in_parallel(filenames: Vec<string>,  glossary: &GigabyteMap) 
      -> io::Result<()> 
  {
@@ -46,7 +46,7 @@ Rust提供了一个名为Rc<T>的类型来支持多重所有权，它名称中�
 * 单线程条件下，可以使用Rc
 * 多线程并发条件下，建议使用Arc
 
-```Rust
+```rust
 use std::thread;
 use std::time::Duration;
 use std::sync::Arc;
