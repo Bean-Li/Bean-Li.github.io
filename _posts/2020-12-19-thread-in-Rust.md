@@ -13,6 +13,8 @@ excerpt: Thread in Rust
 
 本文介绍Rust中的多线程并发。Rust提供了std::thread::spawn来创建线程。
 
+
+
 ```rust
 use std::thread ;
 use std::time::Duration;
@@ -36,7 +38,17 @@ fn main()
 }
 ```
 
+其中thread::spawn的定义如下：
 
+```
+pub fn spawn<F, T>(f: F) -> JoinHandle<T> 
+where
+    F: FnOnce() -> T,
+    F: Send + 'static,
+    T: Send + 'static, 
+```
+
+其返回值是JoinHandle类型。如果操作系统不能创建出来线程，respawn调用会panic。如果你的主程序，需要考虑spawn无法创建出来线程的情况，不能任由程序panic，那么你应该选择本文第三部分介绍的Builder::spawn，该接口会返回Result类型。
 
 输出如下：
 
@@ -165,7 +177,10 @@ warning: unused `std::result::Result` that must be used
    = note: this `Result` may be an `Err` variant, which should be handled
 ```
 
+建议主线程总是调用join来检测线程的运行状态，原因如下：
 
+* 如果主线程不等待线程退出，获取线程的返回值，主线程可能较早退出，导致线程也不得不退出，功能失控
+* 如果某个线程的工作崩溃，而无论主线程还是其他线程都不做任何处理，程序可能会失控。而主进程通过join，可以获得线程的返回值是Err，从而得知线程崩溃，作出正确的处理决断。
 
 # 定制线程
 
