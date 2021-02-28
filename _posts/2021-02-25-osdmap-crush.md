@@ -1,11 +1,10 @@
 ---
 layout: post
 title: 从osdmap中获取crush相关的信息
-date: 2021-02-21 10:29
+date: 2021-02-27 10:29
 categories: ceph
 tag: crush
 excerpt: 
-
 ---
 
 # 前言
