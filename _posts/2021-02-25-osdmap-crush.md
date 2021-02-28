@@ -4,7 +4,7 @@ title: 从osdmap中获取crush相关的信息
 date: 2021-02-27 10:29
 categories: ceph
 tag: crush
-excerpt: 
+excerpt: extract crush from specific osdmap and get pg distribution
 ---
 
 # 前言
