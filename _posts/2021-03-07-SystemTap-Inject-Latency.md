@@ -4,7 +4,7 @@ title: 使用SystemTap给I/O设备注入延迟
 date: 2021-03-07 10:29
 categories: Linux
 tag: SystemTap
-excerpt: extract crush from specific osdmap and get pg distribution
+excerpt: 使用SystemTap给块设备注入延迟
 ---
 
 # 前言
