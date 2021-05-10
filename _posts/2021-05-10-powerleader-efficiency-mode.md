@@ -1,6 +1,12 @@
-# 前言
+---
+layout: post
+title: 上图不说话：关闭服务器节能模式
+date: 2021-03-07 10:29
+categories: Linux
+tag: Linux
+excerpt: 关闭服务器节能模式
+---
 
-某些服务器默认开启节能模式，稳定性不太好。以宝德服务器为例，介绍关闭节能模式的方法，下面贴图不说话。
 
 ![](../assets/LINUX/powerleader_1.png)
 
