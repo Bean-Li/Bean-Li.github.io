@@ -2,7 +2,7 @@
 layout: post
 title: systemd tmpfiles相关的服务
 date: 2022-03-18 10:29
-categories:Linux
+categories: Linux
 tag: systmed
 excerpt: systemd tmpfiles相关的机制
 ---
