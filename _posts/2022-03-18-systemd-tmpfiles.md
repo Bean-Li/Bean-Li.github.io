@@ -1,9 +1,9 @@
 ---
 layout: post
-title: systemd-tmpfiles 相关的服务
+title: systemd tmpfiles相关的服务
 date: 2022-03-18 10:29
 categories:Linux
-tag: Storage
+tag: systmed
 excerpt: systemd tmpfiles相关的机制
 ---
 # 前言
@@ -23,7 +23,7 @@ systemd-private-5257097ec71448b0aac566695b533a84-httpd.service-dMlTTI
     └── sessions
         └── 6d474c39c1606792c92f72973c0f135dc07b6682
 2 directories, 1 file
-
+```
 
 注意为什么CentOS版本的session存放在一个systemd-priviate-开头的奇怪目录下。原因是写在httpd的systemd启动脚本中：
 
