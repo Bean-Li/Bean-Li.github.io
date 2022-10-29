@@ -4,7 +4,7 @@ title: 关于logrotate
 date: 2022-10-26 10:29
 categories: Linux
 tag: Linux
-excerpt: NTP状态
+excerpt: logrotate相关问题
 ---
 
 # 前言
